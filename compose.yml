@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: bases-de-datos_postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_config:/etc/postgresql/conf.d
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    shm_size: 128mb
+    restart: unless-stopped
+
+  devenv:
+    build: .
+    container_name: bases-de-datos_devenv
+    ports:
+      - "4000:4000"
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+    depends_on:
+      - postgres
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  postgres_config:

@@ -1,0 +1,28 @@
+{
+  "recommendations": [
+    "dsznajder.es7-react-js-snippets",
+    "msjsdiag.vscode-react-native",
+		"adpyke.codesnap",
+		"beardedbear.beardedicons",
+		"beardedbear.beardedtheme",
+		"bradlc.vscode-tailwindcss",
+		"ecmel.vscode-html-css",
+		"esbenp.prettier-vscode",
+		"fill-labs.dependi",
+		"github.copilot",
+		"github.copilot-chat",
+		"kamikillerto.vscode-colorize",
+		"mechatroner.rainbow-csv",
+		"ms-vscode.cmake-tools",
+		"ms-vscode.cpptools",
+		"ms-vscode.cpptools-themes",
+		"ms-vscode.makefile-tools",
+		"ms-vscode.vscode-typescript-next",
+		"oven.bun-vscode",
+		"parthr2031.colorful-comments",
+		"rangav.vscode-thunder-client",
+		"rvest.vs-code-prettier-eslint",
+		"twxs.cmake",
+		"usernamehw.errorlens"
+  ]
+}

@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { logger } from "hono/logger"
 import { serve } from "bun"
 import { router as auth } from "./src/routes/authRoute"
-import { authenticator } from "./src/middlewares/authMIddleware"
+import { authenticator } from "./src/middlewares/authMiddleware"
 
 const port = Number(process.env.PORT) || 3000
 const app = new Hono()

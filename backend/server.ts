@@ -1,13 +1,19 @@
-import { Hono } from "hono";
-import { serve } from "bun";
+import { Hono } from "hono"
+import { logger } from "hono/logger"
+import { serve } from "bun"
+import { router as auth } from "./src/routes/authRoute"
+import { authenticator } from "./src/middlewares/authMIddleware"
 
-const app = new Hono();
-
-const DATABASE_URL = process.env.DATABASE_URL;
-
-app.get("/", (c) => c.text(`Hello, Hono with Bun! DATABASE_URL: ${DATABASE_URL}`));
+const port = Number(process.env.PORT) || 3000
+const app = new Hono()
+  .use(logger())
+  .use(authenticator)
+  .route('/auth', auth)
+  .route('/', new Hono().get('/', (c) => c.text(`Hi ${c.user!.email}, your ID is ${c.user!.id}.`)))
 
 serve({
   fetch: app.fetch,
-  port: 3000,
-});
+  port
+})
+
+console.log(`Server running at http://localhost:${port}`)

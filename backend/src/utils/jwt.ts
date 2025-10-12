@@ -17,11 +17,9 @@ const access_spki = await importSPKI(process.env.ACCESS_TOKEN_PUBLIC_KEY, "EdDSA
 const refresh_pkcs8 = await importPKCS8(process.env.REFRESH_TOKEN_PRIVATE_KEY, "EdDSA")
 const refresh_spki = await importSPKI(process.env.REFRESH_TOKEN_PUBLIC_KEY, "EdDSA")
 
-export const createJWT = (expiration: string, pkcs8: CryptoKey, payload: object) => {
-  const issuer = process.env.JWT_ISSUER || "FrameworksBloateados"
-  
+export const createJWT = (expiration: string, pkcs8: CryptoKey, payload: object) => {  
   return new SignJWT({
-    iss: issuer,
+    iss: "FrameworksBloateados",
     ...payload,
   })
     .setProtectedHeader({ typ: "JWT", alg: "EdDSA" })
@@ -55,9 +53,9 @@ export const generateTokenPair = async (sub: string, payload?: object) => {
   }
 }
 
-export const regenerateAccessToken = async (sub: string, fp: string) => {
+export const regenerateAccessToken = async (sub: string, fingerprint: string) => {
   try {
-    const accessToken = await createJWT("15m", access_pkcs8, {sub, fp})
+    const accessToken = await createJWT("15m", access_pkcs8, {sub, fp: fingerprint})
     return { accessToken }
   } catch (err: any) {
     console.error("Error regenerating access token:", err)

@@ -9,7 +9,7 @@ const app = new Hono()
   .use(logger())
   .use(authenticator)
   .route("/auth", auth)
-  .route("/", new Hono().get("/", (c) => c.text(`Hi ${c.user!.email}, your ID is ${c.user!.id}.`)))
+  .route("/", new Hono().get("/", (c) => c.json({userId: c.user?.id, email: c.user?.email, accessToken: c.user?.accessToken, fingerprint: c.user?.fingerprint})))
 
 serve({
   fetch: app.fetch,

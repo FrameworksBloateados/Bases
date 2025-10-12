@@ -18,6 +18,14 @@ export const addUser = ({ email, passwordHash }: { email: string; passwordHash: 
   return user
 }
 
-export const findUserById = (id: number) => {
+const findUserById = (id: number) => {
   return users.find((u) => u.id === id)
+}
+
+export const getUserFromPayload = (payload: any) => {
+  const userId = Number(payload.sub)
+  if (!userId || Number.isNaN(userId)) return null
+  const user = findUserById(userId)
+  if (!user) return null
+  return user
 }

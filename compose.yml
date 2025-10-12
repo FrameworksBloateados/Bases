@@ -22,8 +22,10 @@ services:
     volumes:
       - .:/usr/src/app
     environment:
-      - PRIVATE_KEY=${PRIVATE_KEY}
-      - PUBLIC_KEY=${PUBLIC_KEY}
+      - ACCESS_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
+      - ACCESS_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
+      - REFRESH_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
+      - REFRESH_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
       - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@localhost:5432/${POSTGRES_DB:-postgres}
     depends_on:
       - postgres

@@ -1,6 +1,6 @@
-import 'hono'
+import "hono"
 
-declare module 'hono' {
+declare module "hono" {
   interface Context {
     user?: { id: number; email: string }
   }

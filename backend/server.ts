@@ -8,8 +8,8 @@ const port = Number(process.env.PORT) || 3000
 const app = new Hono()
   .use(logger())
   .use(authenticator)
-  .route('/auth', auth)
-  .route('/', new Hono().get('/', (c) => c.text(`Hi ${c.user!.email}, your ID is ${c.user!.id}.`)))
+  .route("/auth", auth)
+  .route("/", new Hono().get("/", (c) => c.text(`Hi ${c.user!.email}, your ID is ${c.user!.id}.`)))
 
 serve({
   fetch: app.fetch,

@@ -8,16 +8,16 @@ export type User = {
 
 const users: User[] = []
 
-export function findUserByEmail(email: string) {
+export const findUserByEmail = (email: string) => {
   return users.find((u) => u.email === email)
 }
 
-export function addUser({ email, passwordHash }: { email: string; passwordHash: string }) {
+export const addUser = ({ email, passwordHash }: { email: string; passwordHash: string }) => {
   const user: User = { id: nextId++, email, passwordHash }
   users.push(user)
   return user
 }
 
-export function findUserById(id: number) {
+export const findUserById = (id: number) => {
   return users.find((u) => u.id === id)
 }

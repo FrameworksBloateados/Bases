@@ -43,15 +43,13 @@ const options = {
   },
 };
 
-const routes = new Hono()
-  .route('/auth', auth)
-  .get('/', c =>
-    c.json({
-      userId: c.user?.id,
-      email: c.user?.email,
-      accessToken: c.user?.accessToken,
-    })
-  );
+const routes = new Hono().route('/auth', auth).get('/', c =>
+  c.json({
+    userId: c.user?.id,
+    email: c.user?.email,
+    accessToken: c.user?.accessToken,
+  })
+);
 
 const app = new Hono()
   .use(logger())

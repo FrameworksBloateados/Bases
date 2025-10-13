@@ -78,7 +78,7 @@ export const refreshAccessTokenHandler = async (c: Context) => {
 const refreshAccessToken = async (c: Context) => {
   const refreshToken = getCookie(c, '__Secure-JWT');
   const fingerprint = getCookie(c, '__Secure-Fgp');
-  
+
   try {
     if (!refreshToken || !fingerprint) throw new Error('Missing cookies');
 

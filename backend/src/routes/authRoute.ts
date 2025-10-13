@@ -154,10 +154,7 @@ export const router = new Hono()
     '/refresh',
     describeRoute({
       tags: ['Auth'],
-      security: [
-        {cookieAuth: []},
-        {cookieFingerprint: []},
-      ],
+      security: [{cookieAuth: []}, {cookieFingerprint: []}],
       responses: {
         200: {
           description: 'Successful token refresh',

@@ -1,49 +1,40 @@
 import { createMiddleware } from "hono/factory"
-import { verifyAccessToken, verifyRefreshToken, regenerateAccessToken } from "../utils/jwt"
+import { getAccessTokenPayload } from "../utils/jwt"
 import { getUserFromPayload } from "../utils/users"
 import { getCookie } from "hono/cookie"
 import type { Context, Next } from "hono"
+import { unauthorized } from "../utils/replies"
 
-const unauthorized = (c: Context) => c.json({ error: "Unauthorized" }, 401)
+function extractBearerToken(header?: string): string | null {
+  if (!header) return null
+  const match = header.match(/^Bearer (.+)$/i)
+  return match && match[1]?.trim() ? match[1].trim() : null
+}
+
+const authenticateAccessToken = async (c: Context) => {
+  const fingerprint = getCookie(c, "__Secure-Fgp")
+  if (!fingerprint) throw new Error("Missing fingerprint cookie")
+
+  const accessToken = extractBearerToken(c.req.header?.("authorization"))
+  if (!accessToken) throw new Error("Missing access token")
+
+  const payload = await getAccessTokenPayload(accessToken, fingerprint)
+  const user = getUserFromPayload(payload)
+  if (!user) throw new Error("User not found")
+
+  c.user = { id: user.id, email: user.email, accessToken }
+}
 
 export const authenticator = createMiddleware(async (c: Context, next: Next) => {
   const url = new URL(c.req.url)
-  if (url.pathname.startsWith("/auth")) return await next()
-
-  const fingerprint = getCookie(c, "__Secure-Fgp")
-  if (!fingerprint) return unauthorized(c)
-
-  const authHeader = c.req.header?.("authorization") || ""
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null
-  try {
-    if (!token) throw new Error("No token provided")
-
-    const payload = await verifyAccessToken(token, fingerprint)
-    const user = getUserFromPayload(payload)
-    if (!user) return unauthorized(c)
-
-    c.user = { id: user.id, email: user.email, accessToken: token, fingerprint }
+  const skipPaths = ["/auth", "/doc", "/ui"]
+  if (skipPaths.some(path => url.pathname.startsWith(path))) {
     return await next()
-  } catch (err: any) {
-    return refreshTokenAndContinue(c, next)
+  }
+  try {
+    await authenticateAccessToken(c)
+    return await next()
+  } catch (err) {
+    return unauthorized(c)
   }
 })
-
-const refreshTokenAndContinue = async (c: Context, next: Next) => {
-  const refreshToken = getCookie(c, "__Secure-JWT")
-  const fingerprint = getCookie(c, "__Secure-Fgp")
-  if (!refreshToken || !fingerprint) return unauthorized(c)
-
-  try {
-    const payload = await verifyRefreshToken(refreshToken, fingerprint)
-    const user = getUserFromPayload(payload)
-    if (!user) return unauthorized(c)
-
-    const accessToken = await regenerateAccessToken(user.id.toString(), fingerprint)
-    c.user = { id: user.id, email: user.email, accessToken, fingerprint }
-    return await next()
-  } catch (err: any) {
-    console.error("Error occurred during token refresh:", err)
-    return c.json({ error: "Internal server error" }, 500)
-  }
-}

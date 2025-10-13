@@ -3,7 +3,7 @@
 
 import { setCookie } from "hono/cookie"
 import { randomUUID } from "node:crypto"
-import { importPKCS8, importSPKI, SignJWT, jwtVerify, type JWTPayload } from "jose"
+import { importPKCS8, importSPKI, SignJWT, jwtVerify } from "jose"
 
 if (!process.env.ACCESS_TOKEN_PRIVATE_KEY || !process.env.ACCESS_TOKEN_PUBLIC_KEY) {
   throw new Error("Missing ACCESS_TOKEN_PRIVATE_KEY or ACCESS_TOKEN_PUBLIC_KEY environment variables")
@@ -15,8 +15,10 @@ if (!process.env.REFRESH_TOKEN_PRIVATE_KEY || !process.env.REFRESH_TOKEN_PUBLIC_
 
 const access_pkcs8 = await importPKCS8(process.env.ACCESS_TOKEN_PRIVATE_KEY, "EdDSA")
 const access_spki = await importSPKI(process.env.ACCESS_TOKEN_PUBLIC_KEY, "EdDSA")
+const accessTokenExpiration = "10s" // 15 minutes
 const refresh_pkcs8 = await importPKCS8(process.env.REFRESH_TOKEN_PRIVATE_KEY, "EdDSA")
 const refresh_spki = await importSPKI(process.env.REFRESH_TOKEN_PUBLIC_KEY, "EdDSA")
+const refreshTokenExpiration = "1y" // 1 year
 
 export const createJWT = (expiration: string, pkcs8: CryptoKey, payload: object) => {
   return new SignJWT({
@@ -39,8 +41,8 @@ export const generateTokenPair = async (sub: string, payload?: object) => {
     const hashedFingerprint = hashFingerprint(fingerprint)
 
     const [accessToken, refreshToken] = await Promise.all([ // Using promise for concurrency
-      createJWT("15m", access_pkcs8, {sub, fph: hashedFingerprint, ...payload}),
-      createJWT("1y", refresh_pkcs8, {sub, fph: hashedFingerprint})
+      createJWT(accessTokenExpiration, access_pkcs8, {sub, fph: hashedFingerprint, ...payload}),
+      createJWT(refreshTokenExpiration, refresh_pkcs8, {sub, fph: hashedFingerprint})
     ])
 
     return {
@@ -49,7 +51,7 @@ export const generateTokenPair = async (sub: string, payload?: object) => {
       fingerprint // Should be stored in a cookie (__Secure-Fgp) with HttpOnly, Secure and SameSite=Strict attributes
     }
   } catch (err: any) {
-    const errorMessage = "Error generating token pair";
+    const errorMessage = "Error generating token pair"
     console.error(`${errorMessage}:`, err)
     throw new Error(errorMessage)
   }
@@ -57,15 +59,16 @@ export const generateTokenPair = async (sub: string, payload?: object) => {
 
 export const regenerateAccessToken = async (sub: string, fingerprint: string) => {
   try {
-    return await createJWT("15m", access_pkcs8, {sub, fp: fingerprint})
+    const hashedFingerprint = hashFingerprint(fingerprint)
+    return await createJWT(accessTokenExpiration, access_pkcs8, {sub, fph: hashedFingerprint})
   } catch (err: any) {
-    const errorMessage = "Error generating access token";
+    const errorMessage = "Error generating access token"
     console.error(`${errorMessage}:`, err)
     throw new Error(errorMessage)
   }
 }
 
-const verifyToken = async (
+const getPayload = async (
   spki: CryptoKey,
   token: string,
   fingerprint: string,
@@ -76,15 +79,15 @@ const verifyToken = async (
     if (payload.fph !== expectedHash) throw new Error("Invalid fingerprint")
     return payload
   } catch (err: any) {
-    throw err;
+    throw err
   }
 }
 
-export const verifyAccessToken = (token: string, fingerprint: string) =>
-  verifyToken(access_spki, token, fingerprint)
+export const getAccessTokenPayload = (token: string, fingerprint: string) =>
+  getPayload(access_spki, token, fingerprint)
 
-export const verifyRefreshToken = (token: string, fingerprint: string) =>
-  verifyToken(refresh_spki, token, fingerprint)
+export const getRefreshTokenPayload = (token: string, fingerprint: string) =>
+  getPayload(refresh_spki, token, fingerprint)
 
 export const setCookies = (c: any, fingerprint: string, refreshToken: string | undefined) => {
   const atrributes = {
@@ -96,3 +99,4 @@ export const setCookies = (c: any, fingerprint: string, refreshToken: string | u
   setCookie(c, "__Secure-Fgp", fingerprint, atrributes)
   if (refreshToken) setCookie(c, "__Secure-JWT", refreshToken, atrributes)
 }
+

@@ -1,4 +1,5 @@
 import { Hono } from "hono"
+import { swaggerUI } from '@hono/swagger-ui'
 import { logger } from "hono/logger"
 import { serve } from "bun"
 import { router as auth } from "./src/routes/authRoute"
@@ -8,8 +9,9 @@ const port = Number(process.env.PORT) || 3000
 const app = new Hono()
   .use(logger())
   .use(authenticator)
+  .get('/ui', swaggerUI({ url: '/openapi.json' }))
   .route("/auth", auth)
-  .route("/", new Hono().get("/", (c) => c.json({userId: c.user?.id, email: c.user?.email, accessToken: c.user?.accessToken, fingerprint: c.user?.fingerprint})))
+  .route("/", new Hono().get("/", (c) => c.json({userId: c.user?.id, email: c.user?.email, accessToken: c.user?.accessToken})))
 
 serve({
   fetch: app.fetch,

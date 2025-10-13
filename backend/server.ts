@@ -1,8 +1,6 @@
 import {Hono} from 'hono';
-import {OpenAPIHono} from '@hono/zod-openapi';
 import {swaggerUI} from '@hono/swagger-ui';
 import {openAPIRouteHandler} from 'hono-openapi';
-import type {GenerateSpecOptions} from 'hono-openapi';
 import {logger} from 'hono/logger';
 import {serve} from 'bun';
 import {router as auth} from './src/routes/authRoute';

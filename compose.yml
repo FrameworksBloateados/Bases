@@ -26,7 +26,7 @@ services:
       - ACCESS_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
       - REFRESH_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
       - REFRESH_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
-      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@localhost:5432/${POSTGRES_DB:-postgres}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
     depends_on:
       - postgres
     stdin_open: true

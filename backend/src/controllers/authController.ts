@@ -4,8 +4,9 @@ import {
   getRefreshTokenPayload,
   regenerateAccessToken,
   setCookies,
+  getUserFromPayload,
 } from '../utils/jwt';
-import {findUserByEmail, addUser, getUserFromPayload} from '../utils/users';
+import {findUserByEmail, addUser} from '../models/user.model';
 import {getCookie} from 'hono/cookie';
 import {
   badRequest,
@@ -24,10 +25,10 @@ export const registerHandler = async (c: Context) => {
       return badRequest(c, 'Email and password are required');
     if (password.length < 8)
       return badRequest(c, 'Password must be at least 8 characters');
-    if (findUserByEmail(email)) return conflict(c, 'User already exists');
+    if (await findUserByEmail(email)) return conflict(c, 'User already exists');
 
     const passwordHash = await Bun.password.hash(password);
-    const user = addUser({email, passwordHash});
+    const user = await addUser({email, passwordHash});
     const userId = user.id.toString();
     const {accessToken, refreshToken, fingerprint} = await generateTokenPair(
       userId
@@ -49,8 +50,8 @@ export const loginHandler = async (c: Context) => {
 
     if (!email || !password)
       return badRequest(c, 'Email and password are required');
-    const user = findUserByEmail(email);
-    if (!user || !(await Bun.password.verify(password, user.passwordHash)))
+    const user = await findUserByEmail(email);
+    if (!user || !(await Bun.password.verify(password, user.password_hash)))
       return unauthorized(c);
 
     const userId = user.id.toString();
@@ -58,7 +59,7 @@ export const loginHandler = async (c: Context) => {
       userId
     );
 
-    setCookies(c, refreshToken, fingerprint);
+    setCookies(c, fingerprint, refreshToken);
     return c.json({accessToken});
   } catch (err: any) {
     console.error('Error occurred during login:', err);
@@ -83,7 +84,7 @@ const refreshAccessToken = async (c: Context) => {
     if (!refreshToken || !fingerprint) throw new Error('Missing cookies');
 
     const payload = await getRefreshTokenPayload(refreshToken, fingerprint);
-    const user = getUserFromPayload(payload);
+    const user = await getUserFromPayload(payload);
     if (!user) throw new Error('User not found');
 
     const accessToken = await regenerateAccessToken(

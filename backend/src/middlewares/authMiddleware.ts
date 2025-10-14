@@ -1,6 +1,5 @@
 import {createMiddleware} from 'hono/factory';
-import {getAccessTokenPayload} from '../utils/jwt';
-import {getUserFromPayload} from '../utils/users';
+import {getAccessTokenPayload, getUserFromPayload} from '../utils/jwt';
 import {getCookie} from 'hono/cookie';
 import type {Context, Next} from 'hono';
 import {unauthorized} from '../utils/replies';
@@ -19,7 +18,7 @@ const authenticateAccessToken = async (c: Context) => {
   if (!accessToken) throw new Error('Missing access token');
 
   const payload = await getAccessTokenPayload(accessToken, fingerprint);
-  const user = getUserFromPayload(payload);
+  const user = await getUserFromPayload(payload);
   if (!user) throw new Error('User not found');
 
   c.user = {id: user.id, email: user.email, accessToken};

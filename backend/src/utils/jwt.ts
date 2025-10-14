@@ -4,6 +4,7 @@
 import {setCookie} from 'hono/cookie';
 import {randomUUID} from 'node:crypto';
 import {importPKCS8, importSPKI, SignJWT, jwtVerify} from 'jose';
+import {findUserById, type User} from '../models/user.model';
 
 if (
   !process.env.ACCESS_TOKEN_PRIVATE_KEY ||
@@ -128,6 +129,14 @@ export const getAccessTokenPayload = (token: string, fingerprint: string) =>
 
 export const getRefreshTokenPayload = (token: string, fingerprint: string) =>
   getPayload(refresh_spki, token, fingerprint);
+
+export const getUserFromPayload = async (
+  payload: any
+): Promise<User | null> => {
+  const userId = Number(payload.sub);
+  if (!userId || Number.isNaN(userId)) return null;
+  return await findUserById(userId);
+};
 
 export const setCookies = (
   c: any,

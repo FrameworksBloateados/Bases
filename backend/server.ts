@@ -5,10 +5,11 @@ import {logger} from 'hono/logger';
 import {serve} from 'bun';
 import {router as auth} from './src/routes/authRoute';
 import {authenticator} from './src/middlewares/authMiddleware';
+import {initDatabase} from './src/utils/database/init';
 
 const port = Number(process.env.PORT) || 3000;
 
-const options = {
+const openAPIOptions = {
   openapi: '3.1.1',
   documentation: {
     info: {
@@ -23,6 +24,7 @@ const options = {
           type: 'http' as const,
           scheme: 'bearer',
           bearerFormat: 'JWT',
+          description: 'Access token',
         },
         cookieAuth: {
           type: 'apiKey' as const,
@@ -34,7 +36,7 @@ const options = {
           type: 'apiKey' as const,
           in: 'cookie',
           name: '__Secure-Fgp',
-          description: 'Fingerprint para el refresh token y access token',
+          description: 'Fingerprint para el refresh token y el access token',
         },
       },
     },
@@ -52,13 +54,22 @@ const routes = new Hono().route('/auth', auth).get('/', c =>
 const app = new Hono()
   .use(logger())
   .use(authenticator)
-  .get('/openapi.json', openAPIRouteHandler(routes, options))
+  .get('/openapi.json', openAPIRouteHandler(routes, openAPIOptions))
   .get('/docs', swaggerUI({url: '/openapi.json'}))
   .route('/', routes);
 
-serve({
-  fetch: app.fetch,
-  port,
-});
-
-console.log(`Server running at http://localhost:${port}`);
+initDatabase()
+  .then(() => {
+    serve({
+      fetch: app.fetch,
+      port,
+    });
+    console.log(` * Server is running on port: ${port}`);
+    console.log(` * API documentation available at /docs`);
+    console.log(` * (Press CTRL + C to quit)`);
+    console.log(``);
+  })
+  .catch(err => {
+    console.error(`Failed to initialize database: \n`, err);
+    process.exit(1);
+  });

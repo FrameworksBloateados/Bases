@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --hot server.ts",
-    "start": "NODE_ENV=production bun server.ts"
+    "dev": "bun --hot ./src/server.ts",
+    "start": "NODE_ENV=production bun ./src/server.ts"
   },
   "dependencies": {
     "@hono/standard-validator": "^0.1.5",

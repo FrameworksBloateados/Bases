@@ -3,9 +3,9 @@ import {swaggerUI} from '@hono/swagger-ui';
 import {openAPIRouteHandler} from 'hono-openapi';
 import {logger} from 'hono/logger';
 import {serve} from 'bun';
-import {router as auth} from './src/routes/authRoute';
-import {authenticator} from './src/middlewares/authMiddleware';
-import {initDatabase} from './src/utils/database/init';
+import {router as auth} from './routes/authRoute';
+import {authenticator} from './middlewares/authMiddleware';
+import {initDatabase} from './utils/database/init';
 
 const port = Number(process.env.PORT) || 3000;
 

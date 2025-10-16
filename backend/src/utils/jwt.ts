@@ -32,7 +32,7 @@ const access_spki = await importSPKI(
   process.env.ACCESS_TOKEN_PUBLIC_KEY,
   'EdDSA'
 );
-const accessTokenExpiration = '10s'; // 15 minutes
+const accessTokenExpiration = '15m'; // 15 minutes
 const refresh_pkcs8 = await importPKCS8(
   process.env.REFRESH_TOKEN_PRIVATE_KEY,
   'EdDSA'

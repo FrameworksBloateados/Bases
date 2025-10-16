@@ -43,8 +43,9 @@ const openAPIOptions = {
   },
 };
 
-const routes = new Hono().route('/auth', auth).get('/', c =>
-  c.json({
+const routes = new Hono()
+  .route('/auth', auth)
+  .get('/', c => c.json({
     userId: c.user?.id,
     email: c.user?.email,
     accessToken: c.user?.accessToken,

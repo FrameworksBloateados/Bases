@@ -27,7 +27,7 @@ const authenticateAccessToken = async (c: Context) => {
 export const authenticator = createMiddleware(
   async (c: Context, next: Next) => {
     const url = new URL(c.req.url);
-    const skipPaths = ['/openapi.json', '/docs', '/auth'];
+    const skipPaths = ['/favicon.ico', '/openapi.json', '/docs', '/auth'];
     if (skipPaths.some(path => url.pathname.startsWith(path))) {
       return await next();
     }

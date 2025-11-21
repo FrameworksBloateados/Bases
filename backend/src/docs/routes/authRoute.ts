@@ -3,7 +3,7 @@ import {validator as zValidator, resolver, describeRoute} from 'hono-openapi';
 import type {
   RouteDocumentation,
   RouteDocumentationWithoutValidator,
-} from './types/routes';
+} from '../types/routes';
 
 const register: RouteDocumentation = {
   describer: describeRoute({

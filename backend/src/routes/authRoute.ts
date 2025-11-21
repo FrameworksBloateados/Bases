@@ -1,5 +1,5 @@
 import {Hono} from 'hono';
-import {register, login, refresh} from '../docs/authRoute';
+import {register, login, refresh} from '../docs/routes/authRoute';
 import {
   registerHandler,
   loginHandler,

@@ -4,53 +4,16 @@ import {openAPIRouteHandler} from 'hono-openapi';
 import {logger} from 'hono/logger';
 import {serve} from 'bun';
 import {router as auth} from './routes/authRoute';
+import {router as whoami} from './routes/whoamiRoute';
 import {authenticator} from './middlewares/authMiddleware';
 import {initDatabase} from './utils/database/init';
+import {openAPIOptions} from './docs/options';
 
 const port = Number(process.env.PORT) || 3000;
 
-const openAPIOptions = {
-  openapi: '3.1.1',
-  documentation: {
-    info: {
-      title: 'Fundamentalistas de Frameworks Bloateados',
-      version: '0.0.0',
-      description: 'Documentación con Swagger',
-    },
-    tags: [{name: 'Auth', description: 'Endpoints de autenticación'}],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http' as const,
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'Access token',
-        },
-        cookieAuth: {
-          type: 'apiKey' as const,
-          in: 'cookie',
-          name: '__Secure-JWT',
-          description: 'Refresh token',
-        },
-        cookieFingerprint: {
-          type: 'apiKey' as const,
-          in: 'cookie',
-          name: '__Secure-Fgp',
-          description: 'Fingerprint para el refresh token y el access token',
-        },
-      },
-    },
-  },
-};
-
 const routes = new Hono()
   .route('/auth', auth)
-  .get('/', c => c.json({
-    userId: c.user?.id,
-    email: c.user?.email,
-    accessToken: c.user?.accessToken,
-  })
-);
+  .route('/whoami', whoami);
 
 const app = new Hono()
   .use(logger())

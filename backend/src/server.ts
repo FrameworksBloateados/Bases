@@ -8,25 +8,25 @@ import {router as whoami} from './routes/whoamiRoute';
 import {authenticator} from './middlewares/authMiddleware';
 import {initDatabase} from './utils/database/init';
 import {openAPIOptions} from './docs/options';
-import { createGenericAPICrudForTheAntiParetoRule } from './antiPareto';
+import {createAntiPareto} from './antiPareto';
 
 const port = Number(process.env.PORT) || 3000;
 
-const routes = new Hono()
-  .route('/auth', auth)
-  .route('/whoami', whoami);
+(async () => {
+  const routes = new Hono()
+    .route('/auth', auth)
+    .route('/whoami', whoami);
+  await createAntiPareto(routes);
 
-createGenericAPICrudForTheAntiParetoRule(routes, 'users');
+  const app = new Hono()
+    .use(logger())
+    .use(authenticator)
+    .get('/openapi.json', openAPIRouteHandler(routes, openAPIOptions))
+    .get('/docs', swaggerUI({url: '/openapi.json'}))
+    .route('/', routes);
 
-const app = new Hono()
-  .use(logger())
-  .use(authenticator)
-  .get('/openapi.json', openAPIRouteHandler(routes, openAPIOptions))
-  .get('/docs', swaggerUI({url: '/openapi.json'}))
-  .route('/', routes);
-
-initDatabase()
-  .then(() => {
+  try {
+    await initDatabase();
     serve({
       fetch: app.fetch,
       port,
@@ -35,8 +35,8 @@ initDatabase()
     console.log(` * API documentation available at /docs`);
     console.log(` * (Press CTRL + C to quit)`);
     console.log(``);
-  })
-  .catch(err => {
+  } catch (err) {
     console.error(`Failed to initialize database: \n`, err);
     process.exit(1);
-  });
+  }
+})();

@@ -1,0 +1,189 @@
+import z from 'zod';
+import {validator as zValidator, resolver, describeRoute} from 'hono-openapi';
+import type {
+  RouteDocumentation,
+  RouteDocumentationWithoutValidator,
+} from './types/routes';
+
+const register: RouteDocumentation = {
+  describer: describeRoute({
+    tags: ['Auth'],
+    responses: {
+      200: {
+        description: 'Successful registration',
+        content: {
+          'application/json': {
+            schema: resolver(
+              z.object({
+                accessToken: z.string(),
+              })
+            ),
+          },
+        },
+        headers: {
+          'Set-Cookie': {
+            schema: {
+              type: 'string',
+              example:
+                '__Secure-JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict; __Secure-Fgp=fingerprint; HttpOnly; Secure; SameSite=Strict',
+              description:
+                'Set-Cookie header containing the JWT refresh token and fingerprint',
+            },
+          },
+        },
+      },
+      400: {
+        description: 'Bad Request',
+        content: {
+          'application/json': {
+            schema: resolver(
+              z.object({
+                error: z.string(),
+              })
+            ),
+          },
+        },
+      },
+      409: {
+        description: 'Conflict',
+        content: {
+          'application/json': {
+            schema: resolver(
+              z.object({
+                error: z.string(),
+              })
+            ),
+          },
+        },
+      },
+      500: {
+        description: 'Internal Server Error',
+        content: {
+          'application/json': {
+            schema: resolver(z.string().describe('Internal Server Error')),
+          },
+        },
+      },
+    },
+  }),
+  validator: zValidator(
+    'json',
+    z.object({
+      email: z.string(),
+      password: z.string().min(8),
+    })
+  ),
+};
+
+const login: RouteDocumentation = {
+  describer: describeRoute({
+    tags: ['Auth'],
+    responses: {
+      200: {
+        description: 'Successful registration',
+        content: {
+          'application/json': {
+            schema: resolver(
+              z.object({
+                accessToken: z.string(),
+              })
+            ),
+          },
+        },
+        headers: {
+          'Set-Cookie': {
+            schema: {
+              type: 'string',
+              example:
+                '__Secure-JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict; __Secure-Fgp=fingerprint; HttpOnly; Secure; SameSite=Strict',
+              description:
+                'Set-Cookie header containing the JWT refresh token and fingerprint',
+            },
+          },
+        },
+      },
+      400: {
+        description: 'Bad Request',
+        content: {
+          'application/json': {
+            schema: resolver(
+              z.object({
+                error: z.string(),
+              })
+            ),
+          },
+        },
+      },
+      409: {
+        description: 'Conflict',
+        content: {
+          'application/json': {
+            schema: resolver(
+              z.object({
+                error: z.string(),
+              })
+            ),
+          },
+        },
+      },
+      500: {
+        description: 'Internal Server Error',
+        content: {
+          'application/json': {
+            schema: resolver(z.string().describe('Internal Server Error')),
+          },
+        },
+      },
+    },
+  }),
+  validator: zValidator(
+    'json',
+    z.object({
+      email: z.string(),
+      password: z.string().min(8),
+    })
+  ),
+};
+
+const refresh: RouteDocumentationWithoutValidator = {
+  describer: describeRoute({
+    tags: ['Auth'],
+    security: [{cookieAuth: []}, {cookieFingerprint: []}],
+    responses: {
+      200: {
+        description: 'Successful token refresh',
+        content: {
+          'application/json': {
+            schema: resolver(
+              z.object({
+                accessToken: z.string(),
+              })
+            ),
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': {
+            schema: resolver(
+              z.object({
+                error: z.string(),
+              })
+            ),
+          },
+        },
+      },
+      500: {
+        description: 'Internal Server Error',
+        content: {
+          'application/json': {
+            schema: resolver(z.string().describe('Internal Server Error')),
+          },
+        },
+      },
+    },
+  }),
+};
+
+export {register, login, refresh};

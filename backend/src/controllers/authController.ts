@@ -30,8 +30,10 @@ export const registerHandler = async (c: Context) => {
     const passwordHash = await Bun.password.hash(password);
     const user = await addUser({email, passwordHash});
     const userId = user.id.toString();
+    const admin = user.admin;
     const {accessToken, refreshToken, fingerprint} = await generateTokenPair(
-      userId
+      userId,
+      admin
     );
 
     setCookies(c, fingerprint, refreshToken);
@@ -55,8 +57,10 @@ export const loginHandler = async (c: Context) => {
       return unauthorized(c);
 
     const userId = user.id.toString();
+    const admin = user.admin;
     const {accessToken, refreshToken, fingerprint} = await generateTokenPair(
-      userId
+      userId,
+      admin
     );
 
     setCookies(c, fingerprint, refreshToken);
@@ -89,9 +93,10 @@ const refreshAccessToken = async (c: Context) => {
 
     const accessToken = await regenerateAccessToken(
       user.id.toString(),
+      user.admin,
       fingerprint
     );
-    c.user = {id: user.id, email: user.email, accessToken};
+    c.user = {id: user.id, admin: user.admin, email: user.email, balance: user.balance, accessToken};
   } catch (err: any) {
     const errorMessage = 'Error refreshing access token';
     console.error(`${errorMessage}:`, err);

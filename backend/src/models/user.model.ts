@@ -2,8 +2,10 @@ import {sql} from '../utils/database/connect';
 
 export type User = {
   id: number;
+  admin: boolean;
   email: string;
   password_hash: string;
+  balance: number;
   created_at: string; // ISO string
 };
 

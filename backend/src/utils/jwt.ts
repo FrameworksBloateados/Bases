@@ -62,7 +62,7 @@ export const hashFingerprint = (fingerprint: string) => {
   return new Bun.CryptoHasher('sha256').update(fingerprint).digest('base64url');
 };
 
-export const generateTokenPair = async (sub: string, payload?: object) => {
+export const generateTokenPair = async (sub: string, admin: boolean, payload?: object) => {
   try {
     const fingerprint = randomUUID();
     const hashedFingerprint = hashFingerprint(fingerprint);
@@ -71,11 +71,13 @@ export const generateTokenPair = async (sub: string, payload?: object) => {
       // Using promise for concurrency
       createJWT(accessTokenExpiration, access_pkcs8, {
         sub,
+        admin,
         fph: hashedFingerprint,
         ...payload,
       }),
       createJWT(refreshTokenExpiration, refresh_pkcs8, {
         sub,
+        admin,
         fph: hashedFingerprint,
       }),
     ]);
@@ -94,12 +96,14 @@ export const generateTokenPair = async (sub: string, payload?: object) => {
 
 export const regenerateAccessToken = async (
   sub: string,
+  admin: boolean,
   fingerprint: string
 ) => {
   try {
     const hashedFingerprint = hashFingerprint(fingerprint);
     return await createJWT(accessTokenExpiration, access_pkcs8, {
       sub,
+      admin,
       fph: hashedFingerprint,
     });
   } catch (err: any) {

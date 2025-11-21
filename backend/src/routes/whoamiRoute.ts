@@ -1,6 +1,6 @@
 import {Hono} from 'hono';
 
-export const router = new Hono().post('/whoami', c => {
+export const router = new Hono().get('/whoami', c => {
   return c.json({
     userId: c.user?.id,
     email: c.user?.email,

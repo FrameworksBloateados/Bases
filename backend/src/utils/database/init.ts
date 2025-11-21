@@ -1,7 +1,7 @@
-import {query} from './connect';
+import {sql} from './connect';
 
 export async function initDatabase() {
-  await query`
+  await sql`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       email VARCHAR(255) UNIQUE NOT NULL,

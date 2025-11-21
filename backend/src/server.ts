@@ -8,12 +8,15 @@ import {router as whoami} from './routes/whoamiRoute';
 import {authenticator} from './middlewares/authMiddleware';
 import {initDatabase} from './utils/database/init';
 import {openAPIOptions} from './docs/options';
+import { createGenericAPICrudForTheAntiParetoRule } from './antiPareto';
 
 const port = Number(process.env.PORT) || 3000;
 
 const routes = new Hono()
   .route('/auth', auth)
   .route('/whoami', whoami);
+
+createGenericAPICrudForTheAntiParetoRule(routes, 'users');
 
 const app = new Hono()
   .use(logger())

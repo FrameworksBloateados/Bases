@@ -5,4 +5,4 @@ if (!connectionString) {
   throw new Error('Missing DATABASE_URL environment variable');
 }
 
-export const query = new SQL(connectionString);
+export const sql = new SQL(connectionString);

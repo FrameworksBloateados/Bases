@@ -1,14 +1,18 @@
 import {Hono} from 'hono';
+import {sql} from './utils/database/connect';
 
 export function createGenericAPICrudForTheAntiParetoRule(
   App: Hono,
   APIRoute: string
 ) {
-  App.get(`${APIRoute}`, c => {
-    return c.json({message: `GET request to ${APIRoute}`});
+  App.get(`${APIRoute}`, async c => {
+    const result = await sql`SELECT * FROM ${sql(APIRoute)}`; // Safe from SQL injection, see https://bun.com/docs/runtime/sql.
+    return c.json(result);
   });
 
-  App.post(`${APIRoute}`, c => {
+  App.post(`${APIRoute}`, async c => {
+    const body = await c.req.json();
+    await sql`INSERT INTO ${sql(APIRoute)} ${sql(body)}`;
     return c.json({message: `POST request to ${APIRoute}`});
   });
 

@@ -62,7 +62,11 @@ export const hashFingerprint = (fingerprint: string) => {
   return new Bun.CryptoHasher('sha256').update(fingerprint).digest('base64url');
 };
 
-export const generateTokenPair = async (sub: string, admin: boolean, payload?: object) => {
+export const generateTokenPair = async (
+  sub: string,
+  admin: boolean,
+  payload?: object
+) => {
   try {
     const fingerprint = randomUUID();
     const hashedFingerprint = hashFingerprint(fingerprint);

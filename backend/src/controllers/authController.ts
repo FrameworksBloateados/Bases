@@ -74,7 +74,7 @@ export const loginHandler = async (c: Context) => {
 export const refreshAccessTokenHandler = async (c: Context) => {
   try {
     await refreshAccessToken(c);
-    return c.json({accessToken: c.user?.accessToken});
+    return c.json({accessToken: c.user.accessToken});
   } catch (err: any) {
     return unauthorized(c);
   }
@@ -96,7 +96,13 @@ const refreshAccessToken = async (c: Context) => {
       user.admin,
       fingerprint
     );
-    c.user = {id: user.id, admin: user.admin, email: user.email, balance: user.balance, accessToken};
+    c.user = {
+      id: user.id,
+      admin: user.admin,
+      email: user.email,
+      balance: user.balance,
+      accessToken,
+    };
   } catch (err: any) {
     const errorMessage = 'Error refreshing access token';
     console.error(`${errorMessage}:`, err);

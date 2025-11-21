@@ -10,3 +10,5 @@ export const conflict = (c: Context, message: string = 'Conflict') =>
   c.json({error: message}, 409);
 export const teapot = (c: Context, message: string = "I'm a teapot") =>
   c.json({error: message}, 418);
+export const forbidden = (c: Context, message: string = 'Forbidden') =>
+  c.json({error: message}, 403);

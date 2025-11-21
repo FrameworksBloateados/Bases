@@ -21,7 +21,13 @@ const authenticateAccessToken = async (c: Context) => {
   const user = await getUserFromPayload(payload);
   if (!user) throw new Error('User not found');
 
-  c.user = {id: user.id, admin: user.admin, email: user.email, balance: user.balance, accessToken};
+  c.user = {
+    id: user.id,
+    admin: user.admin,
+    email: user.email,
+    balance: user.balance,
+    accessToken,
+  };
 };
 
 export const authenticator = createMiddleware(

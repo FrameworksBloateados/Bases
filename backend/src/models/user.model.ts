@@ -34,7 +34,7 @@ export const addUser = async ({
 
 export const findUserById = async (id: number): Promise<User | null> => {
   const result = await sql<User[]>`
-    SELECT id, email, password_hash, created_at FROM users WHERE id = ${id} LIMIT 1;
+    SELECT id, admin, email, password_hash, balance, created_at FROM users WHERE id = ${id} LIMIT 1;
   `;
   return result.length > 0 && result[0] ? result[0] : null;
 };

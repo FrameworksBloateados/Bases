@@ -1,9 +1,10 @@
 import {Hono} from 'hono';
 import {sql} from './utils/database/connect';
+import {forbidden} from './utils/replies';
 
 // Blacklist certain tables from having CRUD routes generated, such as sensitive user data.
 // Write them lowercase to ensure case-insensitive comparison.
-const BLACKLISTED_TABLES = ['users'];
+const BLACKLISTED_TABLES = ['userss'];
 
 export const createAntiPareto = async (App: Hono) => {
   const tables =
@@ -21,21 +22,27 @@ const createGenericAPICrudForTheAntiParetoRule = (
   APIRoute: string
 ) => {
   App.get(`/${APIRoute}`, async c => {
+    if (!c.user.admin) return forbidden(c);
     const result = await sql`SELECT * FROM ${sql(APIRoute)}`; // Safe from SQL injection, see https://bun.com/docs/runtime/sql.
     return c.json(result);
   });
 
   App.post(`/${APIRoute}`, async c => {
+    if (!c.user.admin) return forbidden(c);
     try {
       const body = await c.req.json();
       await sql`INSERT INTO ${sql(APIRoute)} ${sql(body)}`;
       return c.json({message: `POST request to ${APIRoute}`});
     } catch (error) {
-      return c.json({message: `Invalid request body for POST ${APIRoute}`}, 400);
+      return c.json(
+        {message: `Invalid request body for POST ${APIRoute}`},
+        400
+      );
     }
   });
 
   App.put(`/${APIRoute}/:id`, async c => {
+    if (!c.user.admin) return forbidden(c);
     try {
       const {id} = c.req.param();
       const body = await c.req.json();
@@ -47,6 +54,7 @@ const createGenericAPICrudForTheAntiParetoRule = (
   });
 
   App.delete(`/${APIRoute}/:id`, async c => {
+    if (!c.user.admin) return forbidden(c);
     const {id} = c.req.param();
     await sql`DELETE FROM ${sql(APIRoute)} WHERE id = ${id}`;
     return c.json({message: `DELETE request to ${APIRoute} with id ${id}`});

@@ -2,6 +2,7 @@ import {Hono} from 'hono';
 import {swaggerUI} from '@hono/swagger-ui';
 import {openAPIRouteHandler} from 'hono-openapi';
 import {logger} from 'hono/logger';
+import {cors} from 'hono/cors';
 import {serve} from 'bun';
 import {router as auth} from './routes/authRoute';
 import {router as whoami} from './routes/whoamiRoute';
@@ -19,6 +20,7 @@ const port = Number(process.env.PORT) || 3000;
   await createAntiPareto(routes);
 
   const app = new Hono()
+    .use(cors())
     .use(logger())
     .use(authenticator)
     .get('/openapi.json', openAPIRouteHandler(routes, openAPIOptions))

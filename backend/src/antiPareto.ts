@@ -4,7 +4,7 @@ import {forbidden} from './utils/replies';
 
 // Blacklist certain tables from having CRUD routes generated, such as sensitive user data.
 // Write them lowercase to ensure case-insensitive comparison.
-const BLACKLISTED_TABLES = ['userss'];
+const BLACKLISTED_TABLES = ['users'];
 
 export const createAntiPareto = async (App: Hono) => {
   const tables =

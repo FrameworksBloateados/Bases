@@ -16,13 +16,16 @@ export function createGenericAPICrudForTheAntiParetoRule(
     return c.json({message: `POST request to ${APIRoute}`});
   });
 
-  App.put(`${APIRoute}/:id`, c => {
+  App.put(`${APIRoute}/:id`, async c => {
     const {id} = c.req.param();
+    const body = await c.req.json();
+    await sql`UPDATE ${sql(APIRoute)} ${sql(body)}`;
     return c.json({message: `PUT request to ${APIRoute} with id ${id}`});
   });
 
-  App.delete(`${APIRoute}/:id`, c => {
+  App.delete(`${APIRoute}/:id`, async c => {
     const {id} = c.req.param();
+    await sql`DELETE FROM ${sql(APIRoute)} WHERE id = ${id}`
     return c.json({message: `DELETE request to ${APIRoute} with id ${id}`});
   });
 }

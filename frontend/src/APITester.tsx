@@ -12,7 +12,12 @@ export function APITester() {
       const endpoint = formData.get("endpoint") as string;
       const url = new URL(endpoint, location.href);
       const method = formData.get("method") as string;
-      const res = await fetch(url, { method });
+      const jsonData = formData.get("jsonData") as string;
+      const res = await fetch(url, { 
+        method, 
+        body: jsonData ? JSON.stringify(JSON.parse(jsonData)) : undefined,
+        headers: jsonData ? { 'Content-Type': 'application/json' } : undefined
+      });
 
       const data = await res.json();
       responseInputRef.current!.value = JSON.stringify(data, null, 2);
@@ -27,8 +32,10 @@ export function APITester() {
         <select name="method" className="method">
           <option value="GET">GET</option>
           <option value="PUT">PUT</option>
+          <option value="POST">POST</option>
         </select>
         <input type="text" name="endpoint" defaultValue="/api/hello" className="url-input" placeholder="/api/hello" />
+        <textarea name="jsonData" className="json-input" placeholder="Enter JSON data here..." />
         <button type="submit" className="send-button">
           Send
         </button>

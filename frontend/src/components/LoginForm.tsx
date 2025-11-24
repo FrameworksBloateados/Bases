@@ -4,6 +4,9 @@ import { useState, type FormEvent } from "react";
 interface LoginFormProps {
   onSubmit: (credentials: { email: string; password: string; }) => Promise<void>;
 }
+
+
+
 export function LoginForm({ onSubmit }: LoginFormProps) {
 
   const [email, setEmail] = useState("");

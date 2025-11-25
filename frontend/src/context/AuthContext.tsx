@@ -11,7 +11,7 @@ import {
 
 type AuthContextType = {
   isAuthenticated: boolean;
-  loading: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -22,87 +22,60 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({children}: {children: React.ReactNode}) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const isAuthenticated = !!accessToken;
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Try to refresh token on mount
+  const initializeSession = async () => {
+    try {
+      const token = await refreshToken();
+      setAccessToken(token);
+    } catch {
+      setAccessToken(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const token = await refreshToken();
-        if (!cancelled) setAccessToken(token);
-      } catch {
-        if (!cancelled) setAccessToken(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    initializeSession();
   }, []);
 
+  const isAuthenticated = Boolean(accessToken);
+
   const register = async (email: string, password: string) => {
-    try {
-      const token = await registerUser({email, password});
-      setAccessToken(token);
-    } catch (error) {
-      throw error;
-    }
+    const token = await registerUser({email, password});
+    setAccessToken(token);
   };
 
   const login = async (email: string, password: string) => {
-    try {
-      const token = await loginUser({email, password});
-      setAccessToken(token);
-    } catch (error) {
-      throw error;
-    }
+    const token = await loginUser({email, password});
+    setAccessToken(token);
   };
 
   const logout = async () => {
-    try {
-      await logoutUser();
-      setAccessToken(null);
-    } catch (error) {
-      throw error;
-    }
+    await logoutUser();
+    setAccessToken(null);
   };
 
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
-    let token = accessToken;
-
-    // Si todavía estamos cargando (refresh inicial en curso), espera un tick
-    if (loading) {
-      await new Promise(resolve => setTimeout(resolve, 0));
-      token = accessToken;
-    }
-
-    // Si después de cargar no hay token, no hay sesión
+    const token = accessToken;
     if (!token) {
       throw new Error('No authenticated user');
     }
-
     try {
       return await authenticatedFetchUser(url, token, options);
     } catch (error) {
-      // If 401, try to refresh token and retry
       if (error instanceof HttpError && error.status === 401) {
         const newToken = await refreshToken();
         setAccessToken(newToken);
         return authenticatedFetchUser(url, newToken, options);
       }
-
       throw error;
     }
   };
 
   const value: AuthContextType = {
     isAuthenticated,
-    loading,
+    isLoading,
     register,
     login,
     logout,

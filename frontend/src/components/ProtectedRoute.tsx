@@ -1,12 +1,13 @@
 import {Navigate} from 'react-router-dom';
 import {useAuth} from '../context/AuthContext';
+import LoadingPage from './LoadingPage';
 import type {JSX} from 'react';
 
 export default function ProtectedRoute({children}: {children: JSX.Element}) {
-  const {isAuthenticated, loading} = useAuth();
+  const {isAuthenticated, isLoading} = useAuth();
 
-  if (loading) {
-    return null;
+  if (isLoading) {
+    return <LoadingPage />;
   }
 
   if (!isAuthenticated) {

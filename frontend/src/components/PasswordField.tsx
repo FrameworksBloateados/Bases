@@ -1,17 +1,17 @@
 interface PasswordFieldProps {
-  text: string;
+  label: string;
   password: string;
   onChangeHandler: (value: string) => void;
 }
 export function PasswordField({
-  text,
+  label,
   password,
   onChangeHandler,
 }: PasswordFieldProps) {
   return (
     <div className="mb-5">
       <label className="block text-sm font-semibold text-white mb-2">
-        {text}
+        {label}
       </label>
       <input
         type="password"

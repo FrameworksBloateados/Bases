@@ -1,17 +1,13 @@
 interface EmailFieldProps {
-  text: string;
+  label: string;
   email: string;
   onChangeHandler: (value: string) => void;
 }
-export function EmailField({
-  text,
-  email,
-  onChangeHandler,
-}: EmailFieldProps) {
+export function EmailField({label, email, onChangeHandler}: EmailFieldProps) {
   return (
     <div className="mb-5">
       <label className="block text-sm font-semibold text-white mb-2">
-        {text}
+        {label}
       </label>
       <input
         type="email"

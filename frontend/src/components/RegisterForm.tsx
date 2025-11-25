@@ -66,18 +66,18 @@ export function RegisterForm({onSubmit}: RegisterFormProps) {
         </div>
 
         <EmailField
-          text={'Password'}
+          label={'Password'}
           email={email}
           onChangeHandler={setEmail}
         />
 
         <PasswordField
-          text={'Password'}
+          label={'Password'}
           password={password}
           onChangeHandler={setPassword}
         />
         <PasswordField
-          text={'Confirm Password'}
+          label={'Confirm Password'}
           password={repeatedPassword}
           onChangeHandler={setRepeatedPassword}
         />

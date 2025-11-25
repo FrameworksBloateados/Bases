@@ -94,13 +94,13 @@ export function LoginForm({onSubmit}: LoginFormProps) {
         )}
 
         <EmailField
-          text={'Password'}
+          label="Email"
           email={email}
           onChangeHandler={setEmail}
         />
 
         <PasswordField
-          text={'Password'}
+          label={'Password'}
           password={password}
           onChangeHandler={setPassword}
         />

@@ -21,6 +21,7 @@ const app = (
         <Route path="/" element={<App />}></Route>  
         <Route path="/login" element={<LoginForm  onSubmit={login}/>}></Route>
         <Route path="/register" element={<RegisterForm  onSubmit={register}/>}></Route>
+        <Route path="/register" element={<RegisterForm  onSubmit={register}/>}></Route>
       </Routes>
     </Router>
   </StrictMode>

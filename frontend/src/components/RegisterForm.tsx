@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { PasswordField } from "./PasswordField";
+import { Link } from "react-router-dom";
 
 interface RegisterFormProps {
   onSubmit: (credentials: { email: string; password: string; }) => Promise<void>;
@@ -52,6 +53,12 @@ export function RegisterForm({ onSubmit }: RegisterFormProps) {
         >
           Enter Arena
         </button>
+        <p className="text-sm text-gray-400 mt-4 text-center">
+        Already have an account?{" "}
+        <Link to="/login" className="text-red-500 hover:text-red-400">
+            Login
+        </Link>
+        </p>
       </form>
     </div>
   );

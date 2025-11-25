@@ -20,7 +20,10 @@ const port = Number(process.env.PORT) || 3000;
   await createAntiPareto(routes);
 
   const app = new Hono()
-    .use(cors())
+    .use(cors({
+      origin: process.env.FRONTEND_URL || 'http://localhost:80',
+      credentials: true,
+    }))
     .use(logger())
     .use(authenticator)
     .get('/openapi.json', openAPIRouteHandler(routes, openAPIOptions))

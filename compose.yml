@@ -42,6 +42,9 @@ services:
       - REFRESH_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
       - REFRESH_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
       - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
+      - FRONTEND_URL=${FRONTEND_URL:-http://ffb.internal.dev}
+      - BACKEND_URL=${BACKEND_URL:-http://ffb-api.internal.dev}
+      - NODE_ENV=${NODE_ENV:-development}
     depends_on:
       - postgres
       - traefik

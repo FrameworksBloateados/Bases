@@ -153,10 +153,12 @@ export const setCookies = (
 ) => {
   const atrributes = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV !== 'development',
     sameSite: 'Strict' as const,
   };
 
-  setCookie(c, '__Secure-Fgp', fingerprint, atrributes);
-  if (refreshToken) setCookie(c, '__Secure-JWT', refreshToken, atrributes);
+  const cookieNamePrefix = process.env.NODE_ENV !== 'development' ? '__Secure-' : '';
+
+  setCookie(c, `${cookieNamePrefix}Fgp`, fingerprint, atrributes);
+  if (refreshToken) setCookie(c, `${cookieNamePrefix}JWT`, refreshToken, atrributes);
 };

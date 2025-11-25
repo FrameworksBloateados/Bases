@@ -1,37 +1,40 @@
 import {logger} from './logger';
 
-export async function login({
-  email,
-  password,
-}: {
-  email: string;
-  password: string;
-}) {
-  const response = await fetch('http://localhost:3000/auth/login', {
+const authenticate = async (email: string, password: string, url: string) => {
+  const response = await fetch(url, {
     method: 'POST',
     body: JSON.stringify({email, password}),
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Authentication failed: ${errorText}`);
+  }
+  return response;
+}
+
+export const login = async ({
+  email,
+  password,
+}: {
+  email: string;
+  password: string;
+}) => {
+  const response = await authenticate(email, password, `${process.env.BACKEND_URL}/auth/login`);
   const {accessToken} = await response.json();
   logger.info(accessToken);
 }
-
-export async function register({
+export const register = async ({
   email,
   password,
 }: {
   email: string;
   password: string;
-}) {
-  const response = await fetch('http://localhost:3000/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({email, password}),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+}) => {
+  const response = await authenticate(email, password, `${process.env.BACKEND_URL}/auth/register`);
   const {accessToken} = await response.json();
   logger.info(accessToken);
 }

@@ -22,42 +22,58 @@ export function RegisterForm({ onSubmit }: RegisterFormProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-900">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 animate-gradient relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+        <div className="absolute top-20 right-10 w-72 h-72 bg-slate-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float"></div>
+        <div className="absolute top-40 left-10 w-72 h-72 bg-slate-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-slate-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{ animationDelay: '4s' }}></div>
+      </div>
+      
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm p-6 bg-neutral-800 border border-red-600 shadow-[0_0_15px_rgba(255,50,50,0.4)] rounded-lg"
+        className="relative w-full max-w-md p-8 bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl transition-all duration-300 hover:shadow-black/50"
       >
-        <h2 className="text-2xl font-extrabold text-center text-orange-500 mb-6 tracking-wide">
-          Player Login
-        </h2>
+        <div className="text-center mb-8">
+          <div className="inline-block p-3 bg-linear-to-r from-slate-600 to-slate-500 rounded-full mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
+            Create Account
+          </h2>
+          <p className="text-slate-300 text-sm">Join us and start your adventure</p>
+        </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Username
+        <div className="mb-5">
+          <label className="block text-sm font-semibold text-white mb-2">
+            Email Address
           </label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-3 py-2 bg-neutral-700 text-gray-200 border border-neutral-600 rounded-md focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500" />
+            placeholder="you@example.com"
+            className="w-full px-4 py-3 bg-white/20 text-white placeholder-slate-400 border border-white/30 rounded-lg focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-400/50 transition-all duration-200" />
         </div>
 
         <PasswordField text={"Password"} password={password} onChangeHandler={setPassword}/>
         <PasswordField text={"Confirm Password"} password={repeatedPassword} onChangeHandler={setRepeatedPassword}/>
 
-
         <button
           type="submit"
-          className="w-full py-2 font-bold uppercase text-gray-50 bg-red-600 hover:bg-red-700 border-b-4 border-red-900 rounded-md transition-all duration-200 active:translate-y-0.5 active:border-red-800"
+          className="w-full py-3 mt-2 font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99"
         >
-          Enter Arena
+          Create Account
         </button>
-        <p className="text-sm text-gray-400 mt-4 text-center">
-        Already have an account?{" "}
-        <Link to="/login" className="text-red-500 hover:text-red-400">
-            Login
-        </Link>
+        
+        <p className="text-sm text-slate-300 mt-6 text-center">
+          Already have an account?{" "}
+          <Link to="/login" className="text-white font-semibold hover:text-slate-200 transition-colors duration-200 underline decoration-2 decoration-slate-400">
+            Sign In
+          </Link>
         </p>
       </form>
     </div>

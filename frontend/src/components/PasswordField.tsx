@@ -4,8 +4,8 @@ interface PasswordFieldProps {
   onChangeHandler: (value: string) => void;
 }
 export function PasswordField({ text, password, onChangeHandler }: PasswordFieldProps) {
-  return <div className="mb-6">
-    <label className="block text-sm font-medium text-gray-300 mb-1">
+  return <div className="mb-5">
+    <label className="block text-sm font-semibold text-white mb-2">
       {text}
     </label>
     <input
@@ -13,6 +13,7 @@ export function PasswordField({ text, password, onChangeHandler }: PasswordField
       value={password}
       onChange={(e) => onChangeHandler(e.target.value)}
       required
-      className="w-full px-3 py-2 bg-neutral-700 text-gray-200 border border-neutral-600 rounded-md focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500" />
+      placeholder="••••••••"
+      className="w-full px-4 py-3 bg-white/20 text-white placeholder-slate-400 border border-white/30 rounded-lg focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-400/50 transition-all duration-200" />
   </div>;
 }

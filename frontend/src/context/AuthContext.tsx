@@ -75,7 +75,8 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
 
   const value: AuthContextType = {
     isAuthenticated,
-    isLoading,
+    // While debugging, keep the app in loading state a bit longer
+    isLoading: isLoading,
     register,
     login,
     logout,

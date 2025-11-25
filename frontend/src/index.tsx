@@ -1,5 +1,7 @@
 import { serve } from "bun";
-import index from "./index.html";
+import index from "./index.html"
+import "./index.css";
+
 
 const server = serve({
   port: 80,

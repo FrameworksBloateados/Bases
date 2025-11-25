@@ -19,4 +19,6 @@ const server = serve({
   },
 });
 
-console.log(`🚀 Server running at ${server.url}`);
+console.log(` * Server running at: ${server.url}`);
+console.log(` * (Press CTRL + C to quit)`);
+console.log(``);

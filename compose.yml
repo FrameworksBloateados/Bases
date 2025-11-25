@@ -3,13 +3,13 @@ services:
     image: traefik:latest
     container_name: ffb_traefik
     command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
+      - '--api.insecure=true'
+      - '--providers.docker=true'
+      - '--providers.docker.exposedbydefault=false'
+      - '--entrypoints.web.address=:80'
     ports:
-      - "80:80"
-      - "8080:8080"
+      - '80:80'
+      - '8080:8080'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -19,7 +19,7 @@ services:
     image: postgres:latest
     container_name: ffb_postgres
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - postgres_config:/etc/postgresql/conf.d
@@ -42,8 +42,8 @@ services:
       - REFRESH_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
       - REFRESH_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
       - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
-      - FRONTEND_URL=${FRONTEND_URL:-http://ffb.internal.dev}
-      - BACKEND_URL=${BACKEND_URL:-http://ffb-api.internal.dev}
+      - FRONTEND_URL=${FRONTEND_URL:-http://ffb.dev.internal}
+      - BACKEND_URL=${BACKEND_URL:-http://ffb.dev.internal/api}
       - NODE_ENV=${NODE_ENV:-development}
     depends_on:
       - postgres
@@ -51,17 +51,24 @@ services:
     stdin_open: true
     tty: true
     labels:
-      - "traefik.enable=true"
-      # Frontend routing (ffb.dev.internal -> :80)
-      - "traefik.http.routers.frontend.rule=Host(`ffb.dev.internal`)"
-      - "traefik.http.routers.frontend.entrypoints=web"
-      - "traefik.http.routers.frontend.service=frontend"
-      - "traefik.http.services.frontend.loadbalancer.server.port=80"
-      # API routing (ffb-api.dev.internal -> :3000)
-      - "traefik.http.routers.api.rule=Host(`ffb-api.dev.internal`)"
-      - "traefik.http.routers.api.entrypoints=web"
-      - "traefik.http.routers.api.service=api"
-      - "traefik.http.services.api.loadbalancer.server.port=3000"
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik-network'
+
+      # API router: higher priority, PathPrefix /api/v1 -> backend :3000
+      - 'traefik.http.routers.api.rule=Host(`ffb.dev.internal`) && PathPrefix(`/api/v1`)'
+      - 'traefik.http.routers.api.entrypoints=web'
+      - 'traefik.http.routers.api.service=api'
+      - 'traefik.http.services.api.loadbalancer.server.port=3000'
+      - 'traefik.http.routers.api.priority=100'
+      - 'traefik.http.routers.api.middlewares=api-stripprefix'
+      - 'traefik.http.middlewares.api-stripprefix.stripprefix.prefixes=/api/v1'
+
+      # Frontend router: lower priority so /api/v1 is handled by the API router
+      - 'traefik.http.routers.frontend.rule=Host(`ffb.dev.internal`) && PathPrefix(`/`)'
+      - 'traefik.http.routers.frontend.entrypoints=web'
+      - 'traefik.http.routers.frontend.service=frontend'
+      - 'traefik.http.services.frontend.loadbalancer.server.port=80'
+      - 'traefik.http.routers.frontend.priority=1'
     networks:
       - traefik-network
 

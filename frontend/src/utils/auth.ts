@@ -9,12 +9,15 @@ const authenticate = async (email: string, password: string, url: string) => {
     },
     credentials: 'include',
   });
+
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Authentication failed: ${errorText}`);
   }
-  return response;
-}
+
+  const {accessToken} = await response.json();
+  return accessToken;
+};
 
 export const login = async ({
   email,
@@ -23,10 +26,15 @@ export const login = async ({
   email: string;
   password: string;
 }) => {
-  const response = await authenticate(email, password, `${process.env.BACKEND_URL}/auth/login`);
-  const {accessToken} = await response.json();
-  logger.info(accessToken);
-}
+  const accessToken = await authenticate(
+    email,
+    password,
+    `http://ffb.dev.internal/api/v1/auth/login`
+  );
+  logger.info('Login successful');
+  return accessToken;
+};
+
 export const register = async ({
   email,
   password,
@@ -34,7 +42,27 @@ export const register = async ({
   email: string;
   password: string;
 }) => {
-  const response = await authenticate(email, password, `${process.env.BACKEND_URL}/auth/register`);
-  const {accessToken} = await response.json();
-  logger.info(accessToken);
-}
+  const accessToken = await authenticate(
+    email,
+    password,
+    `http://ffb.dev.internal/api/v1/auth/register`
+  );
+  logger.info('Registration successful');
+  return accessToken;
+};
+
+export const authenticatedFetch = async (
+  url: string,
+  accessToken: string,
+  options: RequestInit = {}
+): Promise<Response> => {
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+};

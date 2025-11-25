@@ -4,6 +4,7 @@ import type {
   RouteDocumentation,
   RouteDocumentationWithoutValidator,
 } from '../types/routes';
+import {cookieNamePrefix} from '../../utils/jwt';
 
 const register: RouteDocumentation = {
   describer: describeRoute({
@@ -25,7 +26,7 @@ const register: RouteDocumentation = {
             schema: {
               type: 'string',
               example:
-                '__Secure-JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict; __Secure-Fgp=fingerprint; HttpOnly; Secure; SameSite=Strict',
+                `${cookieNamePrefix}JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict; ${cookieNamePrefix}Fgp=fingerprint; HttpOnly; Secure; SameSite=Strict`,
               description:
                 'Set-Cookie header containing the JWT refresh token and fingerprint',
             },
@@ -95,7 +96,7 @@ const login: RouteDocumentation = {
             schema: {
               type: 'string',
               example:
-                '__Secure-JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict; __Secure-Fgp=fingerprint; HttpOnly; Secure; SameSite=Strict',
+                `${cookieNamePrefix}JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict; ${cookieNamePrefix}Fgp=fingerprint; HttpOnly; Secure; SameSite=Strict`,
               description:
                 'Set-Cookie header containing the JWT refresh token and fingerprint',
             },

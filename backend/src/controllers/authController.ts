@@ -14,6 +14,7 @@ import {
   internalServerError,
   unauthorized,
 } from '../utils/replies';
+import {cookieNamePrefix} from '../utils/jwt';
 
 export const registerHandler = async (c: Context) => {
   try {
@@ -81,8 +82,8 @@ export const refreshAccessTokenHandler = async (c: Context) => {
 };
 
 const refreshAccessToken = async (c: Context) => {
-  const refreshToken = getCookie(c, '__Secure-JWT');
-  const fingerprint = getCookie(c, '__Secure-Fgp');
+  const refreshToken = getCookie(c, `${cookieNamePrefix}JWT`);
+  const fingerprint = getCookie(c, `${cookieNamePrefix}Fgp`);
 
   try {
     if (!refreshToken || !fingerprint) throw new Error('Missing cookies');

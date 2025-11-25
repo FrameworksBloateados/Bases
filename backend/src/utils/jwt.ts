@@ -5,6 +5,7 @@ import {setCookie} from 'hono/cookie';
 import {randomUUID} from 'node:crypto';
 import {importPKCS8, importSPKI, SignJWT, jwtVerify} from 'jose';
 import {findUserById, type User} from '../models/user.model';
+export const cookieNamePrefix = process.env.NODE_ENV !== 'development' ? '__Secure-' : '';
 
 if (
   !process.env.ACCESS_TOKEN_PRIVATE_KEY ||
@@ -156,8 +157,6 @@ export const setCookies = (
     secure: process.env.NODE_ENV !== 'development',
     sameSite: 'Strict' as const,
   };
-
-  const cookieNamePrefix = process.env.NODE_ENV !== 'development' ? '__Secure-' : '';
 
   setCookie(c, `${cookieNamePrefix}Fgp`, fingerprint, atrributes);
   if (refreshToken) setCookie(c, `${cookieNamePrefix}JWT`, refreshToken, atrributes);

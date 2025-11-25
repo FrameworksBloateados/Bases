@@ -3,6 +3,7 @@ import {getAccessTokenPayload, getUserFromPayload} from '../utils/jwt';
 import {getCookie} from 'hono/cookie';
 import type {Context, Next} from 'hono';
 import {unauthorized} from '../utils/replies';
+import {cookieNamePrefix} from '../utils/jwt';
 
 function extractBearerToken(header?: string): string | null {
   if (!header) return null;
@@ -11,7 +12,7 @@ function extractBearerToken(header?: string): string | null {
 }
 
 const authenticateAccessToken = async (c: Context) => {
-  const fingerprint = getCookie(c, '__Secure-Fgp');
+  const fingerprint = getCookie(c, `${cookieNamePrefix}Fgp`);
   if (!fingerprint) throw new Error('Missing fingerprint cookie');
 
   const accessToken = extractBearerToken(c.req.header?.('authorization'));

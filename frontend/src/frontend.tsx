@@ -12,7 +12,35 @@ import {App} from './App';
 import {LoginForm} from './components/LoginForm';
 import {login, register} from './utils/auth';
 import {RegisterForm} from './components/RegisterForm';
-import {AuthProvider} from './context/AuthContext';
+import {AuthProvider, useAuth} from './context/AuthContext';
+
+function LoginPage() {
+  const {login: setAuthToken} = useAuth();
+
+  const handleLogin = async (credentials: {
+    email: string;
+    password: string;
+  }) => {
+    const accessToken = await login(credentials);
+    setAuthToken(accessToken);
+  };
+
+  return <LoginForm onSubmit={handleLogin} />;
+}
+
+function RegisterPage() {
+  const {login: setAuthToken} = useAuth();
+
+  const handleRegister = async (credentials: {
+    email: string;
+    password: string;
+  }) => {
+    const accessToken = await register(credentials);
+    setAuthToken(accessToken);
+  };
+
+  return <RegisterForm onSubmit={handleRegister} />;
+}
 
 const elem = document.getElementById('root')!;
 const app = (
@@ -21,11 +49,8 @@ const app = (
       <Router>
         <Routes>
           <Route path="/" element={<App />}></Route>
-          <Route path="/login" element={<LoginForm onSubmit={login} />}></Route>
-          <Route
-            path="/register"
-            element={<RegisterForm onSubmit={register} />}
-          ></Route>
+          <Route path="/login" element={<LoginPage />}></Route>
+          <Route path="/register" element={<RegisterPage />}></Route>
         </Routes>
       </Router>
     </AuthProvider>

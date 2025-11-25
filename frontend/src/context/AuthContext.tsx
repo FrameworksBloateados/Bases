@@ -3,21 +3,34 @@ import React from 'react';
 
 type AuthContextType = {
   isAuthenticated: boolean;
-  login: () => void;
+  accessToken: string | null;
+  login: (token: string) => void;
   logout: () => void;
+  getAccessToken: () => string | null;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({children}: {children: React.ReactNode}) {
-  // Temporary fake "logged in" state
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const login = () => setIsAuthenticated(true);
-  const logout = () => setIsAuthenticated(false);
+  const login = (token: string) => {
+    setAccessToken(token);
+    setIsAuthenticated(true);
+  };
+
+  const logout = () => {
+    setAccessToken(null);
+    setIsAuthenticated(false);
+  };
+
+  const getAccessToken = () => accessToken;
 
   return (
-    <AuthContext.Provider value={{isAuthenticated, login, logout}}>
+    <AuthContext.Provider
+      value={{isAuthenticated, accessToken, login, logout, getAccessToken}}
+    >
       {children}
     </AuthContext.Provider>
   );

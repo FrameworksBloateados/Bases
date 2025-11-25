@@ -1,3 +1,5 @@
+import {cookieNamePrefix} from '../utils/jwt';
+
 export const openAPIOptions = {
   openapi: '3.1.1',
   documentation: {
@@ -18,13 +20,13 @@ export const openAPIOptions = {
         cookieAuth: {
           type: 'apiKey' as const,
           in: 'cookie',
-          name: '__Secure-JWT',
+          name: `${cookieNamePrefix}JWT`,
           description: 'Refresh token',
         },
         cookieFingerprint: {
           type: 'apiKey' as const,
           in: 'cookie',
-          name: '__Secure-Fgp',
+          name: `${cookieNamePrefix}Fgp`,
           description: 'Fingerprint para el refresh token y el access token',
         },
       },

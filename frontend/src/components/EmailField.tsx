@@ -1,0 +1,26 @@
+interface EmailFieldProps {
+  text: string;
+  email: string;
+  onChangeHandler: (value: string) => void;
+}
+export function EmailField({
+  text,
+  email,
+  onChangeHandler,
+}: EmailFieldProps) {
+  return (
+    <div className="mb-5">
+      <label className="block text-sm font-semibold text-white mb-2">
+        {text}
+      </label>
+      <input
+        type="email"
+        value={email}
+        onChange={e => onChangeHandler(e.target.value)}
+        required
+        placeholder="you@example.com"
+        className="w-full px-4 py-3 bg-white/20 text-white placeholder-slate-400 border border-white/30 rounded-lg focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-400/50 transition-all duration-200"
+      />
+    </div>
+  );
+}

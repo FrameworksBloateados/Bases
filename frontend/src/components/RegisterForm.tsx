@@ -2,17 +2,22 @@ import { useState, type FormEvent } from "react";
 import { PasswordField } from "./PasswordField";
 import { Link } from "react-router-dom";
 
-interface LoginFormProps {
+interface RegisterFormProps {
   onSubmit: (credentials: { email: string; password: string; }) => Promise<void>;
 }
 
-export function LoginForm({ onSubmit }: LoginFormProps) {
+export function RegisterForm({ onSubmit }: RegisterFormProps) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [repeatedPassword, setRepeatedPassword] = useState("");
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (repeatedPassword !== password) {
+      alert("Las contras son diferentes!");
+      return;
+    }
     onSubmit({ email, password });
   }
 
@@ -39,6 +44,8 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
         </div>
 
         <PasswordField text={"Password"} password={password} onChangeHandler={setPassword}/>
+        <PasswordField text={"Confirm Password"} password={repeatedPassword} onChangeHandler={setRepeatedPassword}/>
+
 
         <button
           type="submit"
@@ -47,8 +54,8 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
           Enter Arena
         </button>
         <p className="text-sm text-gray-400 mt-4 text-center">
-        Don't have an account?{" "}
-        <Link to="/register" className="text-red-500 hover:text-red-400">
+        Already have an account?{" "}
+        <Link to="/login" className="text-red-500 hover:text-red-400">
             Login
         </Link>
         </p>

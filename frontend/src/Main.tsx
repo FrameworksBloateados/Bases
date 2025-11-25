@@ -6,10 +6,11 @@ import {LoginForm} from './components/LoginForm';
 import {RegisterForm} from './components/RegisterForm';
 import ProtectedRoute from './components/ProtectedRoute';
 import {AuthProvider, useAuth} from './context/AuthContext';
+import {Navigate} from 'react-router-dom';
 
 const elem = document.getElementById('root')!;
 function AppRoutes() {
-  const {login, register} = useAuth();
+  const {login, register, isAuthenticated, isLoading} = useAuth();
 
   return (
     <Routes>
@@ -24,15 +25,35 @@ function AppRoutes() {
       <Route
         path="/login"
         element={
-          <LoginForm onSubmit={({email, password}) => login(email, password)} />
+          isLoading ? (
+            <></>
+          ) : isAuthenticated ? (
+            <Navigate to="/" replace />
+          ) : (
+            <LoginForm
+              onSuccess={() => {
+                return;
+              }}
+              onSubmit={({email, password}) => login(email, password)}
+            />
+          )
         }
       />
       <Route
         path="/register"
         element={
-          <RegisterForm
-            onSubmit={({email, password}) => register(email, password)}
-          />
+          isLoading ? (
+            <></>
+          ) : isAuthenticated ? (
+            <Navigate to="/" replace />
+          ) : (
+            <RegisterForm
+              onSuccess={() => {
+                return;
+              }}
+              onSubmit={({email, password}) => register(email, password)}
+            />
+          )
         }
       />
     </Routes>

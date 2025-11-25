@@ -5,9 +5,10 @@ import {Link} from 'react-router-dom';
 
 interface LoginFormProps {
   onSubmit: (credentials: {email: string; password: string}) => Promise<void>;
+  onSuccess?: () => void;
 }
 
-export function LoginForm({onSubmit}: LoginFormProps) {
+export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,7 @@ export function LoginForm({onSubmit}: LoginFormProps) {
 
     try {
       await onSubmit({email, password});
+      onSuccess?.();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Login failed. Please try again.'
@@ -93,11 +95,7 @@ export function LoginForm({onSubmit}: LoginFormProps) {
           </div>
         )}
 
-        <EmailField
-          label="Email"
-          email={email}
-          onChangeHandler={setEmail}
-        />
+        <EmailField label="Email" email={email} onChangeHandler={setEmail} />
 
         <PasswordField
           label={'Password'}

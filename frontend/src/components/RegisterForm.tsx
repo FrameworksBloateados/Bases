@@ -5,20 +5,22 @@ import {Link} from 'react-router-dom';
 
 interface RegisterFormProps {
   onSubmit: (credentials: {email: string; password: string}) => Promise<void>;
+  onSuccess?: () => void;
 }
 
-export function RegisterForm({onSubmit}: RegisterFormProps) {
+export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeatedPassword, setRepeatedPassword] = useState('');
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (repeatedPassword !== password) {
       alert('Las contras son diferentes!');
       return;
     }
-    onSubmit({email, password});
+    await onSubmit({email, password});
+    onSuccess?.();
   }
 
   return (
@@ -65,11 +67,7 @@ export function RegisterForm({onSubmit}: RegisterFormProps) {
           </p>
         </div>
 
-        <EmailField
-          label={'Password'}
-          email={email}
-          onChangeHandler={setEmail}
-        />
+        <EmailField label={'Email'} email={email} onChangeHandler={setEmail} />
 
         <PasswordField
           label={'Password'}

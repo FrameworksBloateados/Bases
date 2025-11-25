@@ -1,3 +1,6 @@
+import { logger } from "./logger";
+
+
 export async function login({ email, password }: { email: string; password: string; }) {
 
   const response = await fetch("http://localhost:3000/auth/register", {
@@ -7,5 +10,6 @@ export async function login({ email, password }: { email: string; password: stri
       "Content-Type": "application/json"
     }
   });
-  console.log(response.json());
+  const {accessToken} = await response.json()
+  logger.info(accessToken)
 }

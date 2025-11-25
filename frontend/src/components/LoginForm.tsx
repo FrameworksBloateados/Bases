@@ -1,6 +1,29 @@
 import { useState, type FormEvent } from "react";
 
 
+
+interface PasswordFieldProps {
+  text: string,
+  password: string, 
+  onChangeHandler: (value: string) => void
+}
+
+function PasswordField({ text, password, onChangeHandler }: PasswordFieldProps) {
+  return <div className="mb-6">
+    <label className="block text-sm font-medium text-gray-300 mb-1">
+      {text}
+    </label>
+    <input
+      type="password"
+      value={password}
+      onChange={(e) => onChangeHandler(e.target.value)}
+      required
+      className="w-full px-3 py-2 bg-neutral-700 text-gray-200 border border-neutral-600 rounded-md focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500" />
+  </div>;
+}
+
+
+
 interface LoginFormProps {
   onSubmit: (credentials: { email: string; password: string; }) => Promise<void>;
 }
@@ -15,8 +38,6 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const credentials = { email, password };
-    console.log(JSON.stringify({ ...credentials }));
     if (repeatedPassword !== password) {
       alert("Las contras son diferentes!");
       return;
@@ -46,29 +67,9 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
             className="w-full px-3 py-2 bg-neutral-700 text-gray-200 border border-neutral-600 rounded-md focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500" />
         </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Password
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full px-3 py-2 bg-neutral-700 text-gray-200 border border-neutral-600 rounded-md focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500" />
-        </div>
+        <PasswordField text={"Password"} password={password} onChangeHandler={setPassword}/>
+        <PasswordField text={"Confirm Password"} password={repeatedPassword} onChangeHandler={setRepeatedPassword}/>
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Confirm Password
-          </label>
-          <input
-            type="password"
-            value={repeatedPassword}
-            onChange={(e) => setRepeatedPassword(e.target.value)}
-            required
-            className="w-full px-3 py-2 bg-neutral-700 text-gray-200 border border-neutral-600 rounded-md focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500" />
-        </div>
 
         <button
           type="submit"
@@ -80,3 +81,4 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
     </div>
   );
 }
+

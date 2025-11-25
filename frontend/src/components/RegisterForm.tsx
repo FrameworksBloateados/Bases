@@ -1,24 +1,23 @@
-import { useState, type FormEvent } from "react";
-import { PasswordField } from "./PasswordField";
-import { Link } from "react-router-dom";
+import {useState, type FormEvent} from 'react';
+import {PasswordField} from './PasswordField';
+import {Link} from 'react-router-dom';
 
 interface RegisterFormProps {
-  onSubmit: (credentials: { email: string; password: string; }) => Promise<void>;
+  onSubmit: (credentials: {email: string; password: string}) => Promise<void>;
 }
 
-export function RegisterForm({ onSubmit }: RegisterFormProps) {
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [repeatedPassword, setRepeatedPassword] = useState("");
+export function RegisterForm({onSubmit}: RegisterFormProps) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [repeatedPassword, setRepeatedPassword] = useState('');
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (repeatedPassword !== password) {
-      alert("Las contras son diferentes!");
+      alert('Las contras son diferentes!');
       return;
     }
-    onSubmit({ email, password });
+    onSubmit({email, password});
   }
 
   return (
@@ -26,24 +25,43 @@ export function RegisterForm({ onSubmit }: RegisterFormProps) {
       {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
         <div className="absolute top-20 right-10 w-72 h-72 bg-slate-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float"></div>
-        <div className="absolute top-40 left-10 w-72 h-72 bg-slate-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-slate-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float" style={{ animationDelay: '4s' }}></div>
+        <div
+          className="absolute top-40 left-10 w-72 h-72 bg-slate-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float"
+          style={{animationDelay: '2s'}}
+        ></div>
+        <div
+          className="absolute -bottom-8 left-1/2 w-72 h-72 bg-slate-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float"
+          style={{animationDelay: '4s'}}
+        ></div>
       </div>
-      
+
       <form
         onSubmit={handleSubmit}
         className="relative w-full max-w-md p-8 bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl transition-all duration-300 hover:shadow-black/50"
       >
         <div className="text-center mb-8">
           <div className="inline-block p-3 bg-linear-to-r from-slate-600 to-slate-500 rounded-full mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-8 w-8 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+              />
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
             Create Account
           </h2>
-          <p className="text-slate-300 text-sm">Join us and start your adventure</p>
+          <p className="text-slate-300 text-sm">
+            Join us and start your adventure
+          </p>
         </div>
 
         <div className="mb-5">
@@ -53,14 +71,23 @@ export function RegisterForm({ onSubmit }: RegisterFormProps) {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
             required
             placeholder="you@example.com"
-            className="w-full px-4 py-3 bg-white/20 text-white placeholder-slate-400 border border-white/30 rounded-lg focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-400/50 transition-all duration-200" />
+            className="w-full px-4 py-3 bg-white/20 text-white placeholder-slate-400 border border-white/30 rounded-lg focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-400/50 transition-all duration-200"
+          />
         </div>
 
-        <PasswordField text={"Password"} password={password} onChangeHandler={setPassword}/>
-        <PasswordField text={"Confirm Password"} password={repeatedPassword} onChangeHandler={setRepeatedPassword}/>
+        <PasswordField
+          text={'Password'}
+          password={password}
+          onChangeHandler={setPassword}
+        />
+        <PasswordField
+          text={'Confirm Password'}
+          password={repeatedPassword}
+          onChangeHandler={setRepeatedPassword}
+        />
 
         <button
           type="submit"
@@ -68,10 +95,13 @@ export function RegisterForm({ onSubmit }: RegisterFormProps) {
         >
           Create Account
         </button>
-        
+
         <p className="text-sm text-slate-300 mt-6 text-center">
-          Already have an account?{" "}
-          <Link to="/login" className="text-white font-semibold hover:text-slate-200 transition-colors duration-200 underline decoration-2 decoration-slate-400">
+          Already have an account?{' '}
+          <Link
+            to="/login"
+            className="text-white font-semibold hover:text-slate-200 transition-colors duration-200 underline decoration-2 decoration-slate-400"
+          >
             Sign In
           </Link>
         </p>
@@ -79,4 +109,3 @@ export function RegisterForm({ onSubmit }: RegisterFormProps) {
     </div>
   );
 }
-

@@ -5,39 +5,32 @@
  * It is included in `src/index.html`.
  */
 
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { BrowserRouter as Router, Route, Routes, Link} from "react-router";
-import { App } from "./App";
-import { LoginForm } from "./components/LoginForm";
-import { login, register } from "./utils/auth";
-import { RegisterForm } from "./components/RegisterForm";
-import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
+import {StrictMode} from 'react';
+import {createRoot} from 'react-dom/client';
+import {BrowserRouter as Router, Route, Routes} from 'react-router';
+import {App} from './App';
+import {LoginForm} from './components/LoginForm';
+import {login, register} from './utils/auth';
+import {RegisterForm} from './components/RegisterForm';
+import {AuthProvider} from './context/AuthContext';
 
-const elem = document.getElementById("root")!;
+const elem = document.getElementById('root')!;
 const app = (
   <StrictMode>
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<App />}></Route>  
-          <Route path="/login" element={<LoginForm  onSubmit={login}/>}></Route>
-          <Route path="/register" element={<RegisterForm  onSubmit={register}/>}></Route>
+          <Route path="/" element={<App />}></Route>
+          <Route path="/login" element={<LoginForm onSubmit={login} />}></Route>
+          <Route
+            path="/register"
+            element={<RegisterForm onSubmit={register} />}
+          ></Route>
         </Routes>
       </Router>
     </AuthProvider>
   </StrictMode>
 );
-
-
-
-
-
-
-
-
-
 
 if (import.meta.hot) {
   // With hot module reloading, `import.meta.hot.data` is persisted.

@@ -1,5 +1,5 @@
-import { createContext, useContext, useState } from "react";
-import React from "react";
+import {createContext, useContext, useState} from 'react';
+import React from 'react';
 
 type AuthContextType = {
   isAuthenticated: boolean;
@@ -7,11 +7,9 @@ type AuthContextType = {
   logout: () => void;
 };
 
-
-
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({children}: {children: React.ReactNode}) {
   // Temporary fake "logged in" state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -19,7 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => setIsAuthenticated(false);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{isAuthenticated, login, logout}}>
       {children}
     </AuthContext.Provider>
   );
@@ -27,6 +25,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
   return ctx;
 }

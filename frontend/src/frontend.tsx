@@ -7,13 +7,21 @@
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter as Router, Route, Routes, Link} from "react-router";
 import { App } from "./App";
-
+import { LoginForm } from "./components/LoginForm";
+import { login } from "./utils/auth";
 
 const elem = document.getElementById("root")!;
 const app = (
   <StrictMode>
-    <App />
+    <Router>
+      <Routes>
+        <Route path="/" element={<App />}></Route>  
+        <Route path="/register" element={<LoginForm  onSubmit={login}/>}></Route>
+        <Route path="/login" element={<LoginForm  onSubmit={login}/>}></Route>
+      </Routes>
+    </Router>
   </StrictMode>
 );
 

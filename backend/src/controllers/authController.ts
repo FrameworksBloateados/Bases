@@ -97,7 +97,7 @@ const refreshAccessToken = async (c: Context) => {
   const fingerprint = getCookie(c, `${cookieNamePrefix}Fgp`);
 
   try {
-    if (!refreshToken || !fingerprint) throw new Error('Missing cookies');
+    if (!refreshToken || !fingerprint) return unauthorized(c);
 
     const payload = await getRefreshTokenPayload(refreshToken, fingerprint);
     const user = await getUserFromPayload(payload);

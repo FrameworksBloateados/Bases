@@ -3,13 +3,15 @@ import {useEffect, useState} from 'react';
 import {useAuth} from './context/AuthContext';
 
 type WhoAmIResponse = {
-  userId: number;
+  id: number;
+  admin: boolean;
   email: string;
+  balance: number;
   accessToken: string;
 };
 
 export function App() {
-  const {authenticatedFetch, isAuthenticated, isLoading} = useAuth();
+  const {authenticatedFetch, isAuthenticated, isLoading, logout} = useAuth();
   const [userInfo, setUserInfo] = useState<WhoAmIResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,6 +75,15 @@ export function App() {
       </div>
 
       <div className="relative w-full max-w-xl p-8 bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl">
+        <div className="absolute top-4 right-4">
+          <button
+            type="button"
+            onClick={logout}
+            className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99"
+          >
+            Logout
+          </button>
+        </div>
         <div className="text-center mb-6">
           <div className="inline-block p-3 bg-linear-to-r from-slate-600 to-slate-500 rounded-full mb-4">
             <svg
@@ -111,7 +122,7 @@ export function App() {
                 <span className="text-sm uppercase tracking-wide text-slate-400">
                   User ID
                 </span>
-                <span className="font-semibold text-white">{userInfo.userId}</span>
+                <span className="font-semibold text-white">{userInfo.id}</span>
               </div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm uppercase tracking-wide text-slate-400">
@@ -119,6 +130,22 @@ export function App() {
                 </span>
                 <span className="font-semibold text-white break-all">
                   {userInfo.email}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm uppercase tracking-wide text-slate-400">
+                  Admin
+                </span>
+                <span className="font-semibold text-white">
+                  {userInfo.admin ? 'Yes' : 'No'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm uppercase tracking-wide text-slate-400">
+                  Balance
+                </span>
+                <span className="font-semibold text-white">
+                  ${userInfo.balance}
                 </span>
               </div>
             </div>

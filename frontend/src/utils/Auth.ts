@@ -31,7 +31,6 @@ export const login = async ({
     password,
     `http://ffb.dev.internal/api/v1/auth/login`
   );
-  logger.info('Login successful');
   return accessToken;
 };
 
@@ -47,7 +46,6 @@ export const register = async ({
     password,
     `http://ffb.dev.internal/api/v1/auth/register`
   );
-  logger.info('Registration successful');
   return accessToken;
 };
 
@@ -61,8 +59,6 @@ export const logout = async () => {
     const errorText = await response.text();
     throw new Error(`Logout failed: ${errorText}`);
   }
-
-  logger.info('Logout successful');
 }
 
 export const refreshToken = async () => {
@@ -80,7 +76,6 @@ export const refreshToken = async () => {
   }
 
   const {accessToken} = await response.json();
-  logger.info('Token refresh successful');
   return accessToken;
 }
 

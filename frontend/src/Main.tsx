@@ -3,22 +3,49 @@ import {createRoot} from 'react-dom/client';
 import {BrowserRouter as Router, Route, Routes} from 'react-router';
 import {App} from './App';
 import {LoginForm} from './components/LoginForm';
-import {login, register} from './utils/Auth';
 import {RegisterForm} from './components/RegisterForm';
+import ProtectedRoute from './components/ProtectedRoute';
+import {AuthProvider, useAuth} from './context/AuthContext';
 
 const elem = document.getElementById('root')!;
+function AppRoutes() {
+  const {login, register} = useAuth();
+
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <App />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <LoginForm onSubmit={({email, password}) => login(email, password)} />
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <RegisterForm
+            onSubmit={({email, password}) => register(email, password)}
+          />
+        }
+      />
+    </Routes>
+  );
+}
+
 const app = (
   <StrictMode>
-    <Router>
-      <Routes>
-        <Route path="/" element={<App />}></Route>
-        <Route path="/login" element={<LoginForm onSubmit={login} />}></Route>
-        <Route
-          path="/register"
-          element={<RegisterForm onSubmit={register} />}
-        ></Route>
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </AuthProvider>
   </StrictMode>
 );
 

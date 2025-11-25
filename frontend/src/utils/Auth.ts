@@ -67,7 +67,7 @@ export const logout = async () => {
 
 export const refreshToken = async () => {
   const response = await fetch(
-    `http://ffb.dev.internal/api/v1/auth/refresh-token`,
+    `http://ffb.dev.internal/api/v1/auth/refresh`,
     {
       method: 'POST',
       credentials: 'include',

@@ -5,7 +5,7 @@ import {login} from './utils/Auth';
 export function App() {
   return (
     <div className="app">
-      <LoginForm onSubmit={login} />
+      Holanda.
     </div>
   );
 }

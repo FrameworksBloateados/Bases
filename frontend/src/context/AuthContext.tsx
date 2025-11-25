@@ -11,6 +11,7 @@ import {
 
 type AuthContextType = {
   isAuthenticated: boolean;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({children}: {children: React.ReactNode}) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const isAuthenticated = !!accessToken;
 
   // Try to refresh token on mount
@@ -33,6 +35,8 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
         if (!cancelled) setAccessToken(token);
       } catch {
         if (!cancelled) setAccessToken(null);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
 
@@ -71,19 +75,15 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     let token = accessToken;
 
-    // If no token, try to refresh
-    if (!token) {
-      try {
-        token = await refreshToken();
-        setAccessToken(token);
-      } catch {
-        throw new Error('No access token available and refresh failed');
-      }
+    // Si todavía estamos cargando (refresh inicial en curso), espera un tick
+    if (loading) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+      token = accessToken;
     }
 
-    // Ensure token is available
+    // Si después de cargar no hay token, no hay sesión
     if (!token) {
-      throw new Error('No access token available after refresh');
+      throw new Error('No authenticated user');
     }
 
     try {
@@ -102,6 +102,7 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
 
   const value: AuthContextType = {
     isAuthenticated,
+    loading,
     register,
     login,
     logout,

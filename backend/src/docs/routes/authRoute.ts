@@ -6,7 +6,7 @@ import type {
 } from '../types/routes';
 import {cookieNamePrefix} from '../../utils/jwt';
 
-const register: RouteDocumentation = {
+export const register: RouteDocumentation = {
   describer: describeRoute({
     tags: ['Auth'],
     responses: {
@@ -25,8 +25,7 @@ const register: RouteDocumentation = {
           'Set-Cookie': {
             schema: {
               type: 'string',
-              example:
-                `${cookieNamePrefix}JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict; ${cookieNamePrefix}Fgp=fingerprint; HttpOnly; Secure; SameSite=Strict`,
+              example: `${cookieNamePrefix}JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict; ${cookieNamePrefix}Fgp=fingerprint; HttpOnly; Secure; SameSite=Strict`,
               description:
                 'Set-Cookie header containing the JWT refresh token and fingerprint',
             },
@@ -76,7 +75,7 @@ const register: RouteDocumentation = {
   ),
 };
 
-const login: RouteDocumentation = {
+export const login: RouteDocumentation = {
   describer: describeRoute({
     tags: ['Auth'],
     responses: {
@@ -95,8 +94,7 @@ const login: RouteDocumentation = {
           'Set-Cookie': {
             schema: {
               type: 'string',
-              example:
-                `${cookieNamePrefix}JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict; ${cookieNamePrefix}Fgp=fingerprint; HttpOnly; Secure; SameSite=Strict`,
+              example: `${cookieNamePrefix}JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict; ${cookieNamePrefix}Fgp=fingerprint; HttpOnly; Secure; SameSite=Strict`,
               description:
                 'Set-Cookie header containing the JWT refresh token and fingerprint',
             },
@@ -146,7 +144,28 @@ const login: RouteDocumentation = {
   ),
 };
 
-const refresh: RouteDocumentationWithoutValidator = {
+export const logout: RouteDocumentationWithoutValidator = {
+  describer: describeRoute({
+    tags: ['Auth'],
+    security: [{cookieAuth: []}, {cookieFingerprint: []}],
+    responses: {
+      200: {
+        description: 'Successful logout',
+        content: {
+          'application/json': {
+            schema: resolver(
+              z.object({
+                message: z.string(),
+              })
+            ),
+          },
+        },
+      },
+    },
+  }),
+};
+
+export const refresh: RouteDocumentationWithoutValidator = {
   describer: describeRoute({
     tags: ['Auth'],
     security: [{cookieAuth: []}, {cookieFingerprint: []}],
@@ -186,5 +205,3 @@ const refresh: RouteDocumentationWithoutValidator = {
     },
   }),
 };
-
-export {register, login, refresh};

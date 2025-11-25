@@ -1,22 +1,11 @@
 import './index.css';
 import {LoginForm} from './components/LoginForm';
-import {login} from './utils/auth';
-import {useAuth} from './context/AuthContext';
+import {login} from './utils/Auth';
 
 export function App() {
-  const {login: setAuthToken} = useAuth();
-
-  const handleLogin = async (credentials: {
-    email: string;
-    password: string;
-  }) => {
-    const accessToken = await login(credentials);
-    setAuthToken(accessToken);
-  };
-
   return (
     <div className="app">
-      <LoginForm onSubmit={handleLogin} />
+      <LoginForm onSubmit={login} />
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {
   getUserFromPayload,
 } from '../utils/jwt';
 import {findUserByEmail, addUser} from '../models/user.model';
-import {getCookie} from 'hono/cookie';
+import {getCookie, deleteCookie} from 'hono/cookie';
 import {
   badRequest,
   conflict,
@@ -68,6 +68,17 @@ export const loginHandler = async (c: Context) => {
     return c.json({accessToken});
   } catch (err: any) {
     console.error('Error occurred during login:', err);
+    return internalServerError(c);
+  }
+};
+
+export const logoutHandler = async (c: Context) => {
+  try {
+    deleteCookie(c, `${cookieNamePrefix}JWT`);
+    deleteCookie(c, `${cookieNamePrefix}Fgp`);
+    return c.json({message: 'Logged out successfully'});
+  } catch (err: any) {
+    console.error('Error occurred during logout:', err);
     return internalServerError(c);
   }
 };

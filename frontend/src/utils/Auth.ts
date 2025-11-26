@@ -49,12 +49,8 @@ export const register = async ({
   return accessToken;
 };
 
-export const logout = async (accessToken: string | null) => {
-  const token = accessToken;
-    if (!token) {
-      throw new Error('Can not logout non authenticated user');
-    }
-  const response = await authenticatedFetch(`http://ffb.dev.internal/api/v1/user/logout`, token, {
+export const logout = async (authenticatedFetch: (url: string, options?: RequestInit) => Promise<Response>) => {
+  const response = await authenticatedFetch(`http://ffb.dev.internal/api/v1/user/logout`, {
     method: 'POST',
     credentials: 'include',
   });

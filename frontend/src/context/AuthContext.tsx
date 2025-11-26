@@ -52,7 +52,7 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
   };
 
   const logout = async () => {
-    await logoutUser(accessToken);
+    await logoutUser(authenticatedFetch);
     setAccessToken(null);
   };
 
@@ -75,7 +75,6 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
 
   const value: AuthContextType = {
     isAuthenticated,
-    // While debugging, keep the app in loading state a bit longer
     isLoading: isLoading,
     register,
     login,

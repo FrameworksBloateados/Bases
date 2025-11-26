@@ -46,7 +46,10 @@ const createGenericAPICrudForTheAntiParetoRule = async (
   ).includes(APIRoute.toLowerCase());
 
   const getAllDoc = await antiParetoDoc.createGetAllDoc(APIRoute, isPublicGet);
-  const getByIdDoc = await antiParetoDoc.createGetByIdDoc(APIRoute, isPublicGet);
+  const getByIdDoc = await antiParetoDoc.createGetByIdDoc(
+    APIRoute,
+    isPublicGet
+  );
   const postJsonDoc = await antiParetoDoc.createPostJsonDoc(
     APIRoute,
     isPublicPost
@@ -75,7 +78,10 @@ const createGenericAPICrudForTheAntiParetoRule = async (
     const {id} = c.req.param();
     const result = await sql`SELECT * FROM ${sql(APIRoute)} WHERE id = ${id}`;
     if (result.length === 0) {
-      return c.json({message: `Record not found in ${APIRoute} with id ${id}`}, 404);
+      return c.json(
+        {message: `Record not found in ${APIRoute} with id ${id}`},
+        404
+      );
     }
     return c.json(result[0]);
   });

@@ -34,7 +34,7 @@ function AppRoutes() {
               onSuccess={() => {
                 return;
               }}
-              onSubmit={({email, password}) => login(email, password)}
+              onSubmit={({username, password}) => login(username, password)}
             />
           )
         }
@@ -51,7 +51,7 @@ function AppRoutes() {
               onSuccess={() => {
                 return;
               }}
-              onSubmit={({email, password}) => register(email, password)}
+              onSubmit={({username, email, password}) => register(username, email, password)}
             />
           )
         }

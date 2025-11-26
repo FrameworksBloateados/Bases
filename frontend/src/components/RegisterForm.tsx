@@ -1,14 +1,20 @@
 import {useState, type FormEvent} from 'react';
+import {UsernameField} from './UsernameField';
 import {EmailField} from './EmailField';
 import {PasswordField} from './PasswordField';
 import {Link} from 'react-router-dom';
 
 interface RegisterFormProps {
-  onSubmit: (credentials: {email: string; password: string}) => Promise<void>;
+  onSubmit: (credentials: {
+    username: string;
+    email: string;
+    password: string;
+  }) => Promise<void>;
   onSuccess?: () => void;
 }
 
 export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeatedPassword, setRepeatedPassword] = useState('');
@@ -19,7 +25,7 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
       alert('Las contras son diferentes!');
       return;
     }
-    await onSubmit({email, password});
+    await onSubmit({username, email, password});
     onSuccess?.();
   }
 
@@ -66,6 +72,12 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
             Join us and ruin your financial life!
           </p>
         </div>
+
+        <UsernameField
+          label={'Username'}
+          username={username}
+          onChangeHandler={setUsername}
+        />
 
         <EmailField label={'Email'} email={email} onChangeHandler={setEmail} />
 

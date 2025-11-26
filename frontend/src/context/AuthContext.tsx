@@ -12,8 +12,8 @@ import {
 type AuthContextType = {
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  register: (username:string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   authenticatedFetch: (url: string, options?: RequestInit) => Promise<Response>;
 };
@@ -41,13 +41,13 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
 
   const isAuthenticated = Boolean(accessToken);
 
-  const register = async (email: string, password: string) => {
-    const token = await registerUser({email, password});
+  const register = async (username: string, email: string, password: string) => {
+    const token = await registerUser({username, email, password});
     setAccessToken(token);
   };
 
-  const login = async (email: string, password: string) => {
-    const token = await loginUser({email, password});
+  const login = async (username: string, password: string) => {
+    const token = await loginUser({username, password});
     setAccessToken(token);
   };
 

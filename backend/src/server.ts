@@ -6,7 +6,6 @@ import {cors} from 'hono/cors';
 import {serve} from 'bun';
 import {router as auth} from './routes/authRoute';
 import {router as user} from './routes/userRoute';
-import {router as whoami} from './routes/whoamiRoute';
 import {authenticator} from './middlewares/authMiddleware';
 import {initDatabase} from './utils/database/init';
 import {openAPIOptions} from './docs/options';
@@ -15,17 +14,16 @@ import {createAntiPareto} from './antiPareto';
 const port = Number(process.env.PORT) || 3000;
 
 (async () => {
-  const routes = new Hono()
-    .route('/auth', auth)
-    .route('/user', user)
-    .route('/whoami', whoami);
+  const routes = new Hono().route('/auth', auth).route('/user', user);
   await createAntiPareto(routes);
 
   const app = new Hono()
-    .use(cors({
-      origin: process.env.FRONTEND_URL || 'http://localhost:80',
-      credentials: true,
-    }))
+    .use(
+      cors({
+        origin: process.env.FRONTEND_URL || 'http://localhost:80',
+        credentials: true,
+      })
+    )
     .use(logger())
     .use(authenticator)
     .get('/openapi.json', openAPIRouteHandler(routes, openAPIOptions))

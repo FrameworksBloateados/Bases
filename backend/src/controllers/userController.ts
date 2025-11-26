@@ -1,68 +1,12 @@
 import type {Context} from 'hono';
-import {generateTokenPair, setCookies} from '../utils/jwt';
-import {findUserByEmail, addUser, findUserById} from '../models/user.model';
+import {
+  findUserById,
+} from '../models/user.model';
 import {
   badRequest,
-  conflict,
   internalServerError,
   unauthorized,
 } from '../utils/replies';
-
-export const registerHandler = async (c: Context) => {
-  try {
-    const body = await c.req.json();
-    const email = (body?.email || '').toString().trim().toLowerCase();
-    const password = (body?.password || '').toString();
-
-    if (!email || !password)
-      return badRequest(c, 'Email and password are required');
-    if (password.length < 8)
-      return badRequest(c, 'Password must be at least 8 characters');
-    if (await findUserByEmail(email)) return conflict(c, 'User already exists');
-
-    const passwordHash = await Bun.password.hash(password);
-    const user = await addUser({email, passwordHash});
-    const userId = user.id.toString();
-    const admin = user.admin;
-    const {accessToken, refreshToken, fingerprint} = await generateTokenPair(
-      userId,
-      admin
-    );
-
-    setCookies(c, fingerprint, refreshToken);
-    return c.json({accessToken});
-  } catch (err: any) {
-    console.error('Error occurred during registration:', err);
-    return internalServerError(c);
-  }
-};
-
-export const loginHandler = async (c: Context) => {
-  try {
-    const body = await c.req.json();
-    const email = (body?.email || '').toString().trim().toLowerCase();
-    const password = (body?.password || '').toString();
-
-    if (!email || !password)
-      return badRequest(c, 'Email and password are required');
-    const user = await findUserByEmail(email);
-    if (!user || !(await Bun.password.verify(password, user.password_hash)))
-      return unauthorized(c);
-
-    const userId = user.id.toString();
-    const admin = user.admin;
-    const {accessToken, refreshToken, fingerprint} = await generateTokenPair(
-      userId,
-      admin
-    );
-
-    setCookies(c, fingerprint, refreshToken);
-    return c.json({accessToken});
-  } catch (err: any) {
-    console.error('Error occurred during login:', err);
-    return internalServerError(c);
-  }
-};
 
 export const changePasswordHandler = async (c: Context) => {
   try {
@@ -85,6 +29,26 @@ export const changePasswordHandler = async (c: Context) => {
     return c.json({message: 'Password changed successfully'});
   } catch (err: any) {
     console.error('Error occurred during password change:', err);
+    return internalServerError(c);
+  }
+};
+
+export const whoamiHandler = async (c: Context) => {
+  try {
+    const user = await findUserById(c.user.id);
+    if (!user) return unauthorized(c);
+
+    return c.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      admin: user.admin,
+      balance: user.balance,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    });
+  } catch (err: any) {
+    console.error('Error occurred during whoami:', err);
     return internalServerError(c);
   }
 };

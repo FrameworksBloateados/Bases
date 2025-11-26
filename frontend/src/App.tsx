@@ -5,9 +5,11 @@ import {useAuth} from './context/AuthContext';
 type WhoAmIResponse = {
   id: number;
   admin: boolean;
+  username: string;
   email: string;
   balance: number;
-  accessToken: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export function App() {
@@ -22,7 +24,7 @@ export function App() {
       try {
         setError(null);
         const response = await authenticatedFetch(
-          'http://ffb.dev.internal/api/v1/whoami',
+          'http://ffb.dev.internal/api/v1/user/whoami',
           {method: 'GET'}
         );
 
@@ -105,7 +107,7 @@ export function App() {
             Session Info
           </h1>
           <p className="text-slate-300 text-sm">
-            Data from <span className="font-semibold">/api/v1/whoami</span>
+            Data from <span className="font-semibold">/api/v1/user/whoami</span>
           </p>
         </div>
 
@@ -126,6 +128,14 @@ export function App() {
               </div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm uppercase tracking-wide text-slate-400">
+                  Username
+                </span>
+                <span className="font-semibold text-white break-all">
+                  {userInfo.username}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm uppercase tracking-wide text-slate-400">
                   Email
                 </span>
                 <span className="font-semibold text-white break-all">
@@ -140,7 +150,7 @@ export function App() {
                   {userInfo.admin ? 'Yes' : 'No'}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-sm uppercase tracking-wide text-slate-400">
                   Balance
                 </span>
@@ -148,15 +158,22 @@ export function App() {
                   ${userInfo.balance}
                 </span>
               </div>
-            </div>
-
-            <div className="bg-slate-900/40 border border-white/10 rounded-xl p-4 text-slate-100">
-              <span className="text-sm uppercase tracking-wide text-slate-400 block mb-2">
-                Access Token
-              </span>
-              <p className="font-mono text-xs text-slate-200 break-all max-h-40 overflow-y-auto bg-black/30 rounded-lg p-3">
-                {userInfo.accessToken}
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm uppercase tracking-wide text-slate-400">
+                  Created At
+                </span>
+                <span className="font-semibold text-white text-sm">
+                  {new Date(userInfo.created_at).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm uppercase tracking-wide text-slate-400">
+                  Updated At
+                </span>
+                <span className="font-semibold text-white text-sm">
+                  {new Date(userInfo.updated_at).toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
         ) : (

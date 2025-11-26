@@ -1,7 +1,8 @@
 import {Hono} from 'hono';
-import {changePassword} from '../docs/routes/userRoute';
+import {changePassword, whoami} from '../docs/routes/userRoute';
 import {
   changePasswordHandler,
+  whoamiHandler,
 } from '../controllers/userController';
 
 export const router = new Hono()
@@ -11,3 +12,4 @@ export const router = new Hono()
     changePassword.validator,
     changePasswordHandler
   )
+  .get('/whoami', whoami.describer, whoamiHandler);

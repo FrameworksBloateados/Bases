@@ -1,9 +1,15 @@
 import {logger} from './Logger';
 
-const authenticate = async (email: string, password: string, url: string) => {
-  const response = await fetch(url, {
+export const login = async ({
+  username,
+  password,
+}: {
+  username: string;
+  password: string;
+}) => {
+  const response = await fetch('http://ffb.dev.internal/api/v1/auth/login', {
     method: 'POST',
-    body: JSON.stringify({email, password}),
+    body: JSON.stringify({username, password}),
     headers: {
       'Content-Type': 'application/json',
     },
@@ -12,40 +18,37 @@ const authenticate = async (email: string, password: string, url: string) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Authentication failed: ${errorText}`);
+    throw new Error(`Login failed: ${errorText}`);
   }
 
   const {accessToken} = await response.json();
   return accessToken;
 };
 
-export const login = async ({
-  email,
-  password,
-}: {
-  email: string;
-  password: string;
-}) => {
-  const accessToken = await authenticate(
-    email,
-    password,
-    `http://ffb.dev.internal/api/v1/auth/login`
-  );
-  return accessToken;
-};
-
 export const register = async ({
+  username,
   email,
   password,
 }: {
-  email: string;
+  username: string;
   password: string;
+  email: string;
 }) => {
-  const accessToken = await authenticate(
-    email,
-    password,
-    `http://ffb.dev.internal/api/v1/auth/register`
-  );
+  const response = await fetch('http://ffb.dev.internal/api/v1/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({username, email, password}),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Registration failed: ${errorText}`);
+  }
+
+  const {accessToken} = await response.json();
   return accessToken;
 };
 

@@ -5,10 +5,12 @@ export async function initDatabase() {
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       admin BOOLEAN NOT NULL DEFAULT FALSE,
+      username VARCHAR(255) UNIQUE NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
       password_hash VARCHAR(255) NOT NULL,
       balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `;
 

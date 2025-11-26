@@ -1,15 +1,18 @@
 import {useState, type FormEvent} from 'react';
-import {EmailField} from './EmailField';
+import {UsernameField} from './UsernameField';
 import {PasswordField} from './PasswordField';
 import {Link} from 'react-router-dom';
 
 interface LoginFormProps {
-  onSubmit: (credentials: {email: string; password: string}) => Promise<void>;
+  onSubmit: (credentials: {
+    username: string;
+    password: string;
+  }) => Promise<void>;
   onSuccess?: () => void;
 }
 
 export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +23,7 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
     setIsLoading(true);
 
     try {
-      await onSubmit({email, password});
+      await onSubmit({username, password});
       onSuccess?.();
     } catch (err) {
       setError(
@@ -95,7 +98,11 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
           </div>
         )}
 
-        <EmailField label="Email" email={email} onChangeHandler={setEmail} />
+        <UsernameField
+          label="Username"
+          username={username}
+          onChangeHandler={setUsername}
+        />
 
         <PasswordField
           label={'Password'}

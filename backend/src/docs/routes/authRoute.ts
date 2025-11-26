@@ -69,6 +69,7 @@ export const register: RouteDocumentation = {
   validator: zValidator(
     'json',
     z.object({
+      username: z.string(),
       email: z.string(),
       password: z.string().min(8),
     })
@@ -138,7 +139,7 @@ export const login: RouteDocumentation = {
   validator: zValidator(
     'json',
     z.object({
-      email: z.string(),
+      username: z.string(),
       password: z.string().min(8),
     })
   ),

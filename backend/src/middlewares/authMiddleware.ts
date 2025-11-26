@@ -25,8 +25,11 @@ const authenticateAccessToken = async (c: Context) => {
   c.user = {
     id: user.id,
     admin: user.admin,
+    username: user.username,
     email: user.email,
     balance: user.balance,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
     accessToken,
   };
 };

@@ -73,7 +73,7 @@ const createGenericAPICrudForTheAntiParetoRule = async (
     await sql`INSERT INTO ${sql(APIRoute)} ${sql(data)}`;
   };
 
-  const updateData = async (data: any) => {
+  const updated_ata = async (data: any) => {
     await sql`UPDATE ${sql(APIRoute)} ${sql(data)}`;
   };
 
@@ -106,7 +106,7 @@ const createGenericAPICrudForTheAntiParetoRule = async (
     try {
       const {id} = c.req.param();
       const body = await c.req.json();
-      await updateData(body);
+      await updated_ata(body);
       return c.json({message: `PUT request to ${APIRoute} with id ${id}`});
     } catch (error) {
       return c.json({message: `Invalid request body for PUT ${APIRoute}`}, 400);

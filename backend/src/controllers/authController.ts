@@ -6,7 +6,7 @@ import {
   setCookies,
   getUserFromPayload,
 } from '../utils/jwt';
-import {findUserByEmail, addUser} from '../models/user.model';
+import {findUserByEmail, addUser, findUserByUsername} from '../models/user.model';
 import {deleteCookie, getCookie} from 'hono/cookie';
 import {
   badRequest,
@@ -19,17 +19,18 @@ import {cookieNamePrefix} from '../utils/jwt';
 export const registerHandler = async (c: Context) => {
   try {
     const body = await c.req.json();
+    const username = (body?.username || '').toString().trim();
     const email = (body?.email || '').toString().trim().toLowerCase();
     const password = (body?.password || '').toString();
 
-    if (!email || !password)
-      return badRequest(c, 'Email and password are required');
+    if (!username || !email || !password)
+      return badRequest(c, 'Username, email and password are required');
     if (password.length < 8)
       return badRequest(c, 'Password must be at least 8 characters');
-    if (await findUserByEmail(email)) return conflict(c, 'User already exists');
+    if (await findUserByUsername(username) || await findUserByEmail(email)) return conflict(c, 'Username or email already in use');
 
     const passwordHash = await Bun.password.hash(password);
-    const user = await addUser({email, passwordHash});
+    const user = await addUser({username, email, passwordHash});
     const userId = user.id.toString();
     const admin = user.admin;
     const {accessToken, refreshToken, fingerprint} = await generateTokenPair(
@@ -47,13 +48,17 @@ export const registerHandler = async (c: Context) => {
 
 export const loginHandler = async (c: Context) => {
   try {
+    console.log('Login handler invoked');
     const body = await c.req.json();
-    const email = (body?.email || '').toString().trim().toLowerCase();
+    const username = (body?.username || '').toString().trim();
     const password = (body?.password || '').toString();
 
-    if (!email || !password)
-      return badRequest(c, 'Email and password are required');
-    const user = await findUserByEmail(email);
+    console.log('Login attempt with username:', username);
+    console.log('Password provided:', password);
+
+    if (!username || !password)
+      return badRequest(c, 'Username and password are required');
+    const user = await findUserByUsername(username);
     if (!user || !(await Bun.password.verify(password, user.password_hash)))
       return unauthorized(c);
 
@@ -100,8 +105,11 @@ const refreshAccessToken = async (c: Context) => {
     c.user = {
       id: user.id,
       admin: user.admin,
+      username: user.username,
       email: user.email,
       balance: user.balance,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
       accessToken,
     };
   } catch (err: any) {

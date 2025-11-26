@@ -412,6 +412,72 @@ export const createPutJsonDoc = async (
   };
 };
 
+export const createGetByIdDoc = async (
+  tableName: string,
+  isPublic: boolean = false
+): Promise<RouteDocumentationWithoutValidator> => {
+  const columns = await getTableColumns(tableName);
+  const zodSchema = generateZodSchema(columns);
+
+  const description = `Obtiene un registro específico de la tabla '${tableName}' por ID.${
+    isPublic ? '' : ' Requiere permisos de administrador.'
+  }`;
+
+  return {
+    describer: describeRoute({
+      tags: ['AntiPareto'],
+      description,
+      security: [{bearerAuth: []}, {cookieAuth: []}, {cookieFingerprint: []}],
+      responses: {
+        200: {
+          description: 'Registro obtenido exitosamente',
+          content: {
+            'application/json': {
+              schema: resolver(zodSchema),
+            },
+          },
+        },
+        404: {
+          description: 'Not Found',
+          content: {
+            'application/json': {
+              schema: resolver(
+                z.object({
+                  message: z.string(),
+                })
+              ),
+            },
+          },
+        },
+        403: {
+          description: 'Forbidden',
+          content: {
+            'application/json': {
+              schema: resolver(
+                z.object({
+                  error: z.string(),
+                })
+              ),
+            },
+          },
+        },
+        401: {
+          description: 'Unauthorized',
+          content: {
+            'application/json': {
+              schema: resolver(
+                z.object({
+                  error: z.string(),
+                })
+              ),
+            },
+          },
+        },
+      },
+    }),
+  };
+};
+
 export const createDeleteDoc = async (
   tableName: string,
   isPublic: boolean = false

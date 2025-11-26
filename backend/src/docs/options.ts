@@ -8,7 +8,15 @@ export const openAPIOptions = {
       version: '0.0.0',
       description: 'Documentación con Swagger',
     },
-    tags: [{name: 'Auth', description: 'Endpoints de autenticación'}, {name: 'User', description: 'Endpoints del usuario'}],
+    tags: [
+      {name: 'Auth', description: 'Endpoints de autenticación'},
+      {name: 'User', description: 'Endpoints del usuario'},
+      {
+        name: 'AntiPareto',
+        description:
+          'Endpoints CRUD generados automáticamente para todas las tablas',
+      },
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {

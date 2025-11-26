@@ -140,6 +140,7 @@ export function App() {
           match={selectedMatch}
           teams={teams}
           onClose={() => setSelectedMatch(null)}
+          onBetClick={openBetModal}
         />
       )}
 

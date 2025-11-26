@@ -1,13 +1,16 @@
 import {useState} from 'react';
 import type {MatchWithDetails, Team, Player, PlayerMatchStats} from '../types/match.types';
+import {LiveMatchTimer} from './LiveMatchTimer';
+import {CountdownTimer} from './CountdownTimer';
 
 type MatchDetailModalProps = {
   match: MatchWithDetails;
   teams: Team[];
   onClose: () => void;
+  onBetClick?: (matchId: number, teamId: number, teamName: string) => void;
 };
 
-export function MatchDetailModal({match, teams, onClose}: MatchDetailModalProps) {
+export function MatchDetailModal({match, teams, onClose, onBetClick}: MatchDetailModalProps) {
   const [isClosing, setIsClosing] = useState(false);
 
   const handleClose = () => {
@@ -18,6 +21,8 @@ export function MatchDetailModal({match, teams, onClose}: MatchDetailModalProps)
   };
 
   const winningTeamName = teams.find(t => t.id === match.result?.winning_team_id)?.name || 'Unknown';
+  const isUpcoming = !match.result && new Date(match.match_date) > new Date();
+  const isLive = !match.result && new Date(match.match_date) <= new Date();
 
   return (
     <div 
@@ -30,11 +35,20 @@ export function MatchDetailModal({match, teams, onClose}: MatchDetailModalProps)
       >
         <ModalHeader 
           matchDate={match.match_date}
+          isLive={isLive}
+          isUpcoming={isUpcoming}
           onClose={handleClose}
         />
 
         {match.result && (
           <MatchScore match={match} />
+        )}
+
+        {isUpcoming && onBetClick && (
+          <BettingSection
+            match={match}
+            onBetClick={onBetClick}
+          />
         )}
 
         <div className="grid grid-cols-2 gap-8">
@@ -60,17 +74,27 @@ export function MatchDetailModal({match, teams, onClose}: MatchDetailModalProps)
 
 type ModalHeaderProps = {
   matchDate: string;
+  isLive: boolean;
+  isUpcoming: boolean;
   onClose: () => void;
 };
 
-function ModalHeader({matchDate, onClose}: ModalHeaderProps) {
+function ModalHeader({matchDate, isLive, isUpcoming, onClose}: ModalHeaderProps) {
   return (
     <div className="flex justify-between items-start mb-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Detalles del Partido</h2>
-        <p className="text-slate-400 text-sm">
-          {new Date(matchDate).toLocaleString()}
-        </p>
+      <div className="flex-1">
+        <h2 className="text-2xl font-bold text-white mb-2">Detalles del partido</h2>
+        <div className="flex items-center gap-3">
+          <p className="text-slate-400 text-sm">
+            {new Date(matchDate).toLocaleString()}
+          </p>
+          {isLive && (
+            <LiveMatchTimer startTime={matchDate} />
+          )}
+          {isUpcoming && (
+            <CountdownTimer targetTime={matchDate} />
+          )}
+        </div>
       </div>
       <button
         onClick={onClose}
@@ -192,6 +216,42 @@ function WinnerBanner({winningTeamName}: {winningTeamName: string}) {
       <p className="text-green-400 font-bold text-lg">
         🏆 {winningTeamName}
       </p>
+    </div>
+  );
+}
+
+type BettingSectionProps = {
+  match: MatchWithDetails;
+  onBetClick: (matchId: number, teamId: number, teamName: string) => void;
+};
+
+function BettingSection({match, onBetClick}: BettingSectionProps) {
+  return (
+    <div className="mb-6 p-6 bg-slate-900/50 rounded-xl border border-white/10">
+      <h3 className="text-lg font-semibold text-white mb-4 text-center">
+        ¿En quién querés gastar tus ahorros?
+      </h3>
+      <div className="grid grid-cols-2 gap-4">
+        <button
+          onClick={() => onBetClick(match.id, match.team_a_id, match.team_a?.name || 'Unknown')}
+          className="flex flex-col items-center gap-3 p-4 bg-slate-800 hover:bg-slate-700 border border-white/10 hover:border-blue-500/50 rounded-lg transition-all duration-200 group"
+        >
+          {match.team_a?.image_url && (
+            <img src={match.team_a.image_url} alt={match.team_a.name} className="w-16 h-16 object-contain" />
+          )}
+          <span className="text-white font-semibold text-center">{match.team_a?.name || 'Unknown'}</span>
+        </button>
+        
+        <button
+          onClick={() => onBetClick(match.id, match.team_b_id, match.team_b?.name || 'Unknown')}
+          className="flex flex-col items-center gap-3 p-4 bg-slate-800 hover:bg-slate-700 border border-white/10 hover:border-blue-500/50 rounded-lg transition-all duration-200 group"
+        >
+          {match.team_b?.image_url && (
+            <img src={match.team_b.image_url} alt={match.team_b.name} className="w-16 h-16 object-contain" />
+          )}
+          <span className="text-white font-semibold text-center">{match.team_b?.name || 'Unknown'}</span>
+        </button>
+      </div>
     </div>
   );
 }

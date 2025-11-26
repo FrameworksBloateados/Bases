@@ -34,14 +34,16 @@ export function Header({userInfo, onLogout}: HeaderProps) {
   return (
     <div className="max-w-[1600px] mx-auto mb-8 relative z-100">
       <div className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl p-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <UserInfo userInfo={userInfo} />
-          <UserMenu 
-            showMenu={showUserMenu}
-            isClosing={isClosing}
-            onToggleMenu={handleToggleMenu}
-            onLogout={handleLogout}
-          />
+          <div className="self-end sm:self-auto">
+            <UserMenu 
+              showMenu={showUserMenu}
+              isClosing={isClosing}
+              onToggleMenu={handleToggleMenu}
+              onLogout={handleLogout}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -50,13 +52,28 @@ export function Header({userInfo, onLogout}: HeaderProps) {
 
 function UserInfo({userInfo}: {userInfo: WhoAmIResponse | null}) {
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-white mb-1">Casa de apuestas de los Fundamentalistas de Frameworks Bloateados</h1>
-      <p className="text-slate-300">
-        Balance: <span className="font-semibold text-green-400">${userInfo?.balance}</span>
-        <br/>
-        Usuario: <span className="font-semibold">{userInfo?.username}</span>
-      </p>
+    <div className="flex-1 min-w-0">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-3 wrap-break-word bg-linear-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent">
+        Casa de apuestas de los Fundamentalistas de Frameworks Bloateados
+      </h1>
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <span className="text-slate-400 text-sm sm:text-base">
+            {userInfo?.username}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-green-400 text-xs xs:text-base tracking-tight">
+            ${userInfo?.balance}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -70,7 +87,7 @@ type UserMenuProps = {
 
 function UserMenu({showMenu, isClosing, onToggleMenu, onLogout}: UserMenuProps) {
   return (
-    <div className="relative">
+    <div className="relative z-50">
       <button
         type="button"
         onClick={onToggleMenu}
@@ -89,10 +106,10 @@ function UserMenu({showMenu, isClosing, onToggleMenu, onLogout}: UserMenuProps) 
       {showMenu && (
         <>
           <div 
-            className="fixed inset-0" 
+            className="fixed inset-0 z-40" 
             onClick={onToggleMenu}
           />
-          <div className={`absolute right-0 mt-2 w-48 bg-slate-800 border border-white/20 rounded-lg shadow-xl overflow-hidden origin-top ${isClosing ? 'animate-slide-up' : 'animate-slide-down'}`}>
+          <div className={`absolute right-0 mt-2 w-48 bg-slate-800 border border-white/20 rounded-lg shadow-xl overflow-hidden origin-top z-50 ${isClosing ? 'animate-slide-up' : 'animate-slide-down'}`}>
             <a
               href="/dashboard"
               className="block px-4 py-3 text-sm text-white hover:bg-slate-700 transition-colors"

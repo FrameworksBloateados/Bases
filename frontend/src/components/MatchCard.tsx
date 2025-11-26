@@ -1,4 +1,6 @@
 import type {MatchWithDetails} from '../types/match.types';
+import {LiveMatchTimer} from './LiveMatchTimer';
+import {CountdownTimer} from './CountdownTimer';
 
 type MatchCardProps = {
   match: MatchWithDetails;
@@ -8,13 +10,24 @@ type MatchCardProps = {
 };
 
 export function MatchCard({match, showBetting = false, onMatchClick, onBetClick}: MatchCardProps) {
+  const isLive = !match.result && new Date(match.match_date) <= new Date();
+  const isUpcoming = !match.result && new Date(match.match_date) > new Date();
+  
   return (
     <div 
       className="bg-slate-800/50 border border-white/10 rounded-lg p-4 mb-3 hover:border-white/30 transition-all cursor-pointer"
       onClick={() => onMatchClick(match)}
     >
-      <div className="text-xs text-slate-400 mb-2">
-        {new Date(match.match_date).toLocaleString()}
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs text-slate-400">
+          {new Date(match.match_date).toLocaleString()}
+        </div>
+        {isLive && (
+          <LiveMatchTimer startTime={match.match_date} />
+        )}
+        {isUpcoming && (
+          <CountdownTimer targetTime={match.match_date} />
+        )}
       </div>
       
       <div className="flex justify-between items-center mb-2">

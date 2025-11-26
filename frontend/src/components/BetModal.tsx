@@ -190,7 +190,7 @@ function ActionButtons({onCancel, onConfirm, isProcessing}: ActionButtonsProps) 
         disabled={isProcessing}
         className="flex-1 px-4 py-3 bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isProcessing ? 'Procesando...' : 'Confirmar Apuesta'}
+        {isProcessing ? 'Procesando...' : 'Confirmar apuesta'}
       </button>
     </div>
   );

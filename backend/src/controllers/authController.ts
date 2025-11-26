@@ -7,7 +7,7 @@ import {
   getUserFromPayload,
 } from '../utils/jwt';
 import {findUserByEmail, addUser} from '../models/user.model';
-import {getCookie} from 'hono/cookie';
+import {deleteCookie, getCookie} from 'hono/cookie';
 import {
   badRequest,
   conflict,
@@ -108,5 +108,16 @@ const refreshAccessToken = async (c: Context) => {
     const errorMessage = 'Error refreshing access token';
     console.error(`${errorMessage}:`, err);
     throw new Error(errorMessage);
+  }
+};
+
+export const logoutHandler = async (c: Context) => {
+  try {
+    deleteCookie(c, `${cookieNamePrefix}JWT`);
+    deleteCookie(c, `${cookieNamePrefix}Fgp`);
+    return c.json({message: 'Logged out successfully'});
+  } catch (err: any) {
+    console.error('Error occurred during logout:', err);
+    return internalServerError(c);
   }
 };

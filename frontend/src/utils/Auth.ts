@@ -49,8 +49,8 @@ export const register = async ({
   return accessToken;
 };
 
-export const logout = async (authenticatedFetch: (url: string, options?: RequestInit) => Promise<Response>) => {
-  const response = await authenticatedFetch(`http://ffb.dev.internal/api/v1/user/logout`, {
+export const logout = async () => {
+  const response = await fetch(`http://ffb.dev.internal/api/v1/auth/logout`, {
     method: 'POST',
     credentials: 'include',
   });

@@ -1,8 +1,7 @@
 import {Hono} from 'hono';
-import {changePassword, logout} from '../docs/routes/userRoute';
+import {changePassword} from '../docs/routes/userRoute';
 import {
   changePasswordHandler,
-  logoutHandler,
 } from '../controllers/userController';
 
 export const router = new Hono()
@@ -12,4 +11,3 @@ export const router = new Hono()
     changePassword.validator,
     changePasswordHandler
   )
-  .post('/logout', logout.describer, logoutHandler);

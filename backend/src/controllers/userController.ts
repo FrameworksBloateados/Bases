@@ -1,14 +1,12 @@
 import type {Context} from 'hono';
 import {generateTokenPair, setCookies} from '../utils/jwt';
 import {findUserByEmail, addUser, findUserById} from '../models/user.model';
-import {deleteCookie} from 'hono/cookie';
 import {
   badRequest,
   conflict,
   internalServerError,
   unauthorized,
 } from '../utils/replies';
-import {cookieNamePrefix} from '../utils/jwt';
 
 export const registerHandler = async (c: Context) => {
   try {
@@ -87,17 +85,6 @@ export const changePasswordHandler = async (c: Context) => {
     return c.json({message: 'Password changed successfully'});
   } catch (err: any) {
     console.error('Error occurred during password change:', err);
-    return internalServerError(c);
-  }
-};
-
-export const logoutHandler = async (c: Context) => {
-  try {
-    deleteCookie(c, `${cookieNamePrefix}JWT`);
-    deleteCookie(c, `${cookieNamePrefix}Fgp`);
-    return c.json({message: 'Logged out successfully'});
-  } catch (err: any) {
-    console.error('Error occurred during logout:', err);
     return internalServerError(c);
   }
 };

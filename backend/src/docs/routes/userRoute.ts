@@ -1,9 +1,6 @@
 import z from 'zod';
 import {validator as zValidator, resolver, describeRoute} from 'hono-openapi';
-import type {
-  RouteDocumentation,
-  RouteDocumentationWithoutValidator,
-} from '../types/routes';
+import type {RouteDocumentation} from '../types/routes';
 
 export const changePassword: RouteDocumentation = {
   describer: describeRoute({
@@ -63,25 +60,4 @@ export const changePassword: RouteDocumentation = {
       newPassword: z.string().min(8),
     })
   ),
-};
-
-export const logout: RouteDocumentationWithoutValidator = {
-  describer: describeRoute({
-    tags: ['User'],
-    security: [{cookieAuth: []}, {cookieFingerprint: []}],
-    responses: {
-      200: {
-        description: 'Successful logout',
-        content: {
-          'application/json': {
-            schema: resolver(
-              z.object({
-                message: z.string(),
-              })
-            ),
-          },
-        },
-      },
-    },
-  }),
 };

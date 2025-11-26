@@ -1,5 +1,4 @@
 import {Hono} from 'hono';
-import {SwaggerUI, swaggerUI} from '@hono/swagger-ui';
 import {openAPIRouteHandler} from 'hono-openapi';
 import {logger} from 'hono/logger';
 import {cors} from 'hono/cors';
@@ -8,7 +7,7 @@ import {router as auth} from './routes/authRoute';
 import {router as user} from './routes/userRoute';
 import {authenticator} from './middlewares/authMiddleware';
 import {initDatabase} from './utils/database/init';
-import {openAPIOptions, swaggerCSS} from './docs/options';
+import {openAPIOptions, renderSwaggerUI} from './docs/options';
 import {createAntiPareto} from './antiPareto';
 
 const port = Number(process.env.PORT) || 3000;
@@ -27,20 +26,7 @@ const port = Number(process.env.PORT) || 3000;
     .use(logger())
     .use(authenticator)
     .get('/openapi.json', openAPIRouteHandler(routes, openAPIOptions))
-    .get('/docs', c => {
-      return c.html(`
-        <html lang="es">
-          <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <title>Swagger UI</title>
-            <style>${swaggerCSS}</style>
-          </head>
-          <body>
-            ${SwaggerUI({url: '/api/v1/openapi.json'})}
-          </body>
-        </html>
-      `);
-    })
+    .get('/docs', renderSwaggerUI('/api/v1/openapi.json'))
     .route('/', routes);
 
   try {

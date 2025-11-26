@@ -1,52 +1,89 @@
 import './index.css';
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import {useAuth} from './context/AuthContext';
+import {useMatchData, useUserData} from './hooks/useMatchData';
+import {
+  enrichMatches,
+  filterFinishedMatchesWithResults,
+  filterFinishedMatchesWithoutResults,
+  filterUpcomingMatches,
+} from './utils/matchUtils';
+import {Header} from './components/Header';
+import {MatchCard} from './components/MatchCard';
+import {MatchDetailModal} from './components/MatchDetailModal';
+import {BetModal} from './components/BetModal';
+import {ErrorDisplay} from './components/ErrorDisplay';
+import {Toast} from './components/Toast';
+import type {MatchWithDetails} from './types/match.types';
 
-type WhoAmIResponse = {
-  id: number;
-  admin: boolean;
-  username: string;
-  email: string;
-  balance: number;
-  created_at: string;
-  updated_at: string;
+type ToastMessage = {
+  message: string;
+  type: 'success' | 'error' | 'info';
 };
 
 export function App() {
   const {authenticatedFetch, isAuthenticated, isLoading, logout} = useAuth();
-  const [userInfo, setUserInfo] = useState<WhoAmIResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const {userInfo, error: userError, refetchUserInfo} = useUserData();
+  const {matches, teams, players, results, playerStats, error: matchError} = useMatchData();
+  
+  const [selectedMatch, setSelectedMatch] = useState<MatchWithDetails | null>(null);
+  const [selectedBetMatch, setSelectedBetMatch] = useState<{
+    matchId: number;
+    teamId: number;
+    teamName: string;
+  } | null>(null);
+  const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
 
-  useEffect(() => {
-    if (!isAuthenticated || isLoading) return;
+  const error = userError || matchError;
 
-    const fetchWhoAmI = async () => {
-      try {
-        setError(null);
-        const response = await authenticatedFetch(
-          'http://ffb.dev.internal/api/v1/user/whoami',
-          {method: 'GET'}
-        );
+  const enrichedMatches = enrichMatches({matches, teams, players, results, playerStats});
+  const finishedWithResults = filterFinishedMatchesWithResults(enrichedMatches);
+  const finishedWithoutResults = filterFinishedMatchesWithoutResults(enrichedMatches);
+  const upcomingMatches = filterUpcomingMatches(enrichedMatches);
 
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
+  const handleBet = async (matchId: number, teamId: number, amount: number) => {
+    try {
+      const response = await authenticatedFetch('http://ffb.dev.internal/api/v1/bet', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          match_id: matchId,
+          team_id: teamId,
+          amount: amount,
+        }),
+      });
 
-        const data: WhoAmIResponse = await response.json();
-        setUserInfo(data);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load user info.'
-        );
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({error: 'Error desconocido'}));
+        // Solo lanzar el mensaje de error, sin el prefijo
+        throw new Error(errorData.error || 'Error al realizar la apuesta');
       }
-    };
+      
+      await refetchUserInfo();
+    } catch (error) {
+      // Re-lanzar el error para que el BetModal lo capture y muestre
+      throw error;
+    }
+  };
 
-    fetchWhoAmI();
-  }, [authenticatedFetch, isAuthenticated, isLoading]);
+  const openBetModal = (matchId: number, teamId: number, teamName: string) => {
+    setSelectedBetMatch({matchId, teamId, teamName});
+  };
+
+  const closeBetModal = () => {
+    setSelectedBetMatch(null);
+  };
+
+  const handleBetSuccess = () => {
+    setToastMessage({
+      message: '¡Apuesta realizada exitosamente! 🎉',
+      type: 'success',
+    });
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 animate-gradient">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-700">
         <p className="text-slate-200 text-lg font-semibold">Loading session...</p>
       </div>
     );
@@ -54,7 +91,7 @@ export function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 animate-gradient">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-700">
         <p className="text-slate-200 text-lg font-semibold">
           You are not authenticated. Please sign in.
         </p>
@@ -63,123 +100,116 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 animate-gradient relative overflow-hidden py-4 px-4 sm:px-0">
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-10 w-72 h-72 bg-slate-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float"></div>
-        <div
-          className="absolute top-40 left-10 w-72 h-72 bg-slate-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float"
-          style={{animationDelay: '2s'}}
-        ></div>
-        <div
-          className="absolute -bottom-8 left-1/2 w-72 h-72 bg-slate-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-float"
-          style={{animationDelay: '4s'}}
-        ></div>
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 py-8 px-4">
+      <Header userInfo={userInfo} onLogout={logout} />
+
+      {error && <ErrorDisplay message={error} />}
+
+      <div className="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 relative z-50">
+        <MatchesColumn
+          title="Finalizados"
+          statusColor="green"
+          matches={finishedWithResults}
+          emptyMessage="No hay partidos finalizados con resultados"
+          onMatchClick={setSelectedMatch}
+          onBetClick={openBetModal}
+        />
+
+        <MatchesColumn
+          title="En curso"
+          statusColor="yellow"
+          matches={finishedWithoutResults}
+          emptyMessage="No hay partidos finalizados sin resultados"
+          onMatchClick={setSelectedMatch}
+          onBetClick={openBetModal}
+        />
+
+        <MatchesColumn
+          title="Próximos partidos"
+          statusColor="blue"
+          matches={upcomingMatches}
+          emptyMessage="No hay partidos próximos disponibles"
+          showBetting
+          onMatchClick={setSelectedMatch}
+          onBetClick={openBetModal}
+        />
       </div>
 
-      <div className="relative w-full max-w-xl p-8 bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl">
-        <div className="absolute top-4 right-4">
-          <button
-            type="button"
-            onClick={logout}
-            className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99"
-          >
-            Logout
-          </button>
-        </div>
-        <div className="text-center mb-6">
-          <div className="inline-block p-3 bg-linear-to-r from-slate-600 to-slate-500 rounded-full mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">
-            Session Info
-          </h1>
-          <p className="text-slate-300 text-sm">
-            Data from <span className="font-semibold">/api/v1/user/whoami</span>
-          </p>
-        </div>
+      {selectedMatch && (
+        <MatchDetailModal 
+          match={selectedMatch}
+          teams={teams}
+          onClose={() => setSelectedMatch(null)}
+        />
+      )}
 
-        {error && (
-          <div className="mb-5 p-4 bg-red-500/20 border border-red-500/50 rounded-lg backdrop-blur-sm">
-            <p className="text-sm text-red-200 font-medium">{error}</p>
-          </div>
-        )}
+      {selectedBetMatch && (
+        <BetModal
+          matchId={selectedBetMatch.matchId}
+          teamId={selectedBetMatch.teamId}
+          teamName={selectedBetMatch.teamName}
+          userBalance={userInfo?.balance || 0}
+          onClose={closeBetModal}
+          onConfirm={handleBet}
+          onSuccess={handleBetSuccess}
+        />
+      )}
 
-        {userInfo ? (
-          <div className="space-y-4">
-            <div className="bg-slate-900/40 border border-white/10 rounded-xl p-4 text-slate-100">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm uppercase tracking-wide text-slate-400">
-                  User ID
-                </span>
-                <span className="font-semibold text-white">{userInfo.id}</span>
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm uppercase tracking-wide text-slate-400">
-                  Username
-                </span>
-                <span className="font-semibold text-white break-all">
-                  {userInfo.username}
-                </span>
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm uppercase tracking-wide text-slate-400">
-                  Email
-                </span>
-                <span className="font-semibold text-white break-all">
-                  {userInfo.email}
-                </span>
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm uppercase tracking-wide text-slate-400">
-                  Admin
-                </span>
-                <span className="font-semibold text-white">
-                  {userInfo.admin ? 'Yes' : 'No'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm uppercase tracking-wide text-slate-400">
-                  Balance
-                </span>
-                <span className="font-semibold text-white">
-                  ${userInfo.balance}
-                </span>
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm uppercase tracking-wide text-slate-400">
-                  Created At
-                </span>
-                <span className="font-semibold text-white text-sm">
-                  {new Date(userInfo.created_at).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm uppercase tracking-wide text-slate-400">
-                  Updated At
-                </span>
-                <span className="font-semibold text-white text-sm">
-                  {new Date(userInfo.updated_at).toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
+      {toastMessage && (
+        <Toast
+          message={toastMessage.message}
+          type={toastMessage.type}
+          onClose={() => setToastMessage(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+type MatchesColumnProps = {
+  title: string;
+  statusColor: 'green' | 'yellow' | 'blue';
+  matches: MatchWithDetails[];
+  emptyMessage: string;
+  showBetting?: boolean;
+  onMatchClick: (match: MatchWithDetails) => void;
+  onBetClick: (matchId: number, teamId: number, teamName: string) => void;
+};
+
+function MatchesColumn({
+  title,
+  statusColor,
+  matches,
+  emptyMessage,
+  showBetting = false,
+  onMatchClick,
+  onBetClick,
+}: MatchesColumnProps) {
+  const colorClasses = {
+    green: 'bg-green-500',
+    yellow: 'bg-yellow-500',
+    blue: 'bg-blue-500',
+  };
+
+  return (
+    <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+      <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span className={`w-3 h-3 ${colorClasses[statusColor]} rounded-full`}></span>
+        {title}
+      </h2>
+      <div className="space-y-3">
+        {matches.length === 0 ? (
+          <p className="text-slate-400 text-sm">{emptyMessage}</p>
         ) : (
-          <p className="text-slate-200 text-center">
-            No user information available yet.
-          </p>
+          matches.map(match => (
+            <MatchCard 
+              key={match.id} 
+              match={match}
+              showBetting={showBetting}
+              onMatchClick={onMatchClick}
+              onBetClick={onBetClick}
+            />
+          ))
         )}
       </div>
     </div>

@@ -9,7 +9,7 @@ import * as antiParetoDoc from './docs/routes/antiParetoRoute';
 const BLACKLISTED_TABLES = [''];
 
 // Public get tables are tables that can be accessed without admin privileges.
-const PUBLIC_GET_TABLES = ['matches_results'];
+const PUBLIC_GET_TABLES = ['matches', 'matches_results', 'players', 'teams', 'player_match_stats'];
 // Public post tables are tables that can be posted to without admin privileges.
 const PUBLIC_POST_TABLES = [''];
 // Public put tables are tables that can be put to without admin privileges.

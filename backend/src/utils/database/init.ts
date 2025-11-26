@@ -17,7 +17,8 @@ export async function initDatabase() {
   await sql`
     CREATE TABLE IF NOT EXISTS teams (
       id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL
+      name VARCHAR(255) NOT NULL,
+      image_url VARCHAR(1024) NOT NULL
     );
   `;
 
@@ -42,7 +43,21 @@ export async function initDatabase() {
     CREATE TABLE IF NOT EXISTS matches_results (
       id SERIAL PRIMARY KEY,
       match_id INTEGER REFERENCES matches(id),
-      winning_team_id INTEGER REFERENCES teams(id)
+      winning_team_id INTEGER REFERENCES teams(id),
+      team_a_score INTEGER NOT NULL DEFAULT 0,
+      team_b_score INTEGER NOT NULL DEFAULT 0
+    );
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS player_match_stats (
+      id SERIAL PRIMARY KEY,
+      match_id INTEGER REFERENCES matches(id),
+      player_id INTEGER REFERENCES players(id),
+      kills INTEGER NOT NULL DEFAULT 0,
+      headshot_kills INTEGER NOT NULL DEFAULT 0,
+      assists INTEGER NOT NULL DEFAULT 0,
+      deaths INTEGER NOT NULL DEFAULT 0
     );
   `;
 

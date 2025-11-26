@@ -1,4 +1,4 @@
-import {logger} from './Logger';
+import {logger} from './logger';
 
 export const login = async ({
   username,
@@ -109,7 +109,16 @@ export const authenticatedFetch = async (
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new HttpError(response.status, `Request failed: ${errorText}`);
+    let errorMessage = 'Error desconocido';
+    
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.error || errorMessage;
+    } catch {
+      errorMessage = errorText || errorMessage;
+    }
+    
+    throw new HttpError(response.status, errorMessage);
   }
 
   return response;

@@ -7,7 +7,7 @@ import {
   authenticatedFetch as authenticatedFetchUser,
   refreshToken,
   HttpError,
-} from '../utils/Auth';
+} from '../utils/auth';
 
 type AuthContextType = {
   isAuthenticated: boolean;

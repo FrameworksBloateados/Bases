@@ -5,6 +5,7 @@ import {cors} from 'hono/cors';
 import {serve} from 'bun';
 import {router as auth} from './routes/authRoute';
 import {router as user} from './routes/userRoute';
+import {router as bet} from './routes/betRoute';
 import {authenticator} from './middlewares/authMiddleware';
 import {initDatabase} from './utils/database/init';
 import {openAPIOptions, renderSwaggerUI} from './docs/options';
@@ -13,7 +14,10 @@ import {createAntiPareto} from './antiPareto';
 const port = Number(process.env.PORT) || 3000;
 
 (async () => {
-  const routes = new Hono().route('/auth', auth).route('/user', user);
+  const routes = new Hono()
+    .route('/auth', auth)
+    .route('/user', user)
+    .route('/bet', bet);
   await createAntiPareto(routes);
 
   const app = new Hono()

@@ -12,6 +12,7 @@ export const openAPIOptions = {
     tags: [
       {name: 'Auth', description: 'Endpoints de autenticación'},
       {name: 'User', description: 'Endpoints del usuario'},
+      {name: 'Bets', description: 'Endpoints de apuestas'},
       {
         name: 'AntiPareto',
         description:

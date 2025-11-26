@@ -8,10 +8,27 @@ type HeaderProps = {
 
 export function Header({userInfo, onLogout}: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleToggleMenu = () => {
+    if (showUserMenu) {
+      setIsClosing(true);
+      setTimeout(() => {
+        setShowUserMenu(false);
+        setIsClosing(false);
+      }, 200); // Duración de la animación
+    } else {
+      setShowUserMenu(true);
+    }
+  };
 
   const handleLogout = () => {
-    setShowUserMenu(false);
-    onLogout();
+    setIsClosing(true);
+    setTimeout(() => {
+      setShowUserMenu(false);
+      setIsClosing(false);
+      onLogout();
+    }, 200);
   };
 
   return (
@@ -21,7 +38,8 @@ export function Header({userInfo, onLogout}: HeaderProps) {
           <UserInfo userInfo={userInfo} />
           <UserMenu 
             showMenu={showUserMenu}
-            onToggleMenu={() => setShowUserMenu(!showUserMenu)}
+            isClosing={isClosing}
+            onToggleMenu={handleToggleMenu}
             onLogout={handleLogout}
           />
         </div>
@@ -45,11 +63,12 @@ function UserInfo({userInfo}: {userInfo: WhoAmIResponse | null}) {
 
 type UserMenuProps = {
   showMenu: boolean;
+  isClosing: boolean;
   onToggleMenu: () => void;
   onLogout: () => void;
 };
 
-function UserMenu({showMenu, onToggleMenu, onLogout}: UserMenuProps) {
+function UserMenu({showMenu, isClosing, onToggleMenu, onLogout}: UserMenuProps) {
   return (
     <div className="relative">
       <button
@@ -58,7 +77,7 @@ function UserMenu({showMenu, onToggleMenu, onLogout}: UserMenuProps) {
         className="px-4 py-2 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-600 rounded-lg shadow-lg transition-colors duration-300 active:scale-99 flex items-center gap-2"
       >
         <svg 
-          className={`w-4 h-4 transition-transform ${showMenu ? 'rotate-180' : ''}`} 
+          className={`w-4 h-4 transition-transform duration-300 ${showMenu && !isClosing ? 'rotate-180' : ''}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -73,7 +92,7 @@ function UserMenu({showMenu, onToggleMenu, onLogout}: UserMenuProps) {
             className="fixed inset-0" 
             onClick={onToggleMenu}
           />
-          <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-white/20 rounded-lg shadow-xl overflow-hidden">
+          <div className={`absolute right-0 mt-2 w-48 bg-slate-800 border border-white/20 rounded-lg shadow-xl overflow-hidden origin-top ${isClosing ? 'animate-slide-up' : 'animate-slide-down'}`}>
             <a
               href="/dashboard"
               className="block px-4 py-3 text-sm text-white hover:bg-slate-700 transition-colors"

@@ -50,7 +50,7 @@ export const register = async ({
 };
 
 export const logout = async () => {
-  const response = await fetch(`http://ffb.dev.internal/api/v1/auth/logout`, {
+  const response = await fetch(`http://ffb.dev.internal/api/v1/user/logout`, {
     method: 'POST',
     credentials: 'include',
   });

@@ -144,27 +144,6 @@ export const login: RouteDocumentation = {
   ),
 };
 
-export const logout: RouteDocumentationWithoutValidator = {
-  describer: describeRoute({
-    tags: ['Auth'],
-    security: [{cookieAuth: []}, {cookieFingerprint: []}],
-    responses: {
-      200: {
-        description: 'Successful logout',
-        content: {
-          'application/json': {
-            schema: resolver(
-              z.object({
-                message: z.string(),
-              })
-            ),
-          },
-        },
-      },
-    },
-  }),
-};
-
 export const refresh: RouteDocumentationWithoutValidator = {
   describer: describeRoute({
     tags: ['Auth'],

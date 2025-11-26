@@ -71,7 +71,7 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
             Welcome Back
           </h2>
           <p className="text-slate-300 text-sm">
-            Sign in to continue your journey
+            Sign in to keep burning through your savings
           </p>
         </div>
 

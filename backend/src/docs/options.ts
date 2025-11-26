@@ -8,7 +8,7 @@ export const openAPIOptions = {
       version: '0.0.0',
       description: 'Documentación con Swagger',
     },
-    tags: [{name: 'Auth', description: 'Endpoints de autenticación'}],
+    tags: [{name: 'Auth', description: 'Endpoints de autenticación'}, {name: 'User', description: 'Endpoints del usuario'}],
     components: {
       securitySchemes: {
         bearerAuth: {

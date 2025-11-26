@@ -63,7 +63,7 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
             Create Account
           </h2>
           <p className="text-slate-300 text-sm">
-            Join us and start your adventure
+            Join us and ruin your financial life!
           </p>
         </div>
 

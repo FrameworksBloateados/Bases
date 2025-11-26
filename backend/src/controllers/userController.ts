@@ -1,13 +1,7 @@
 import type {Context} from 'hono';
-import {
-  generateTokenPair,
-  getRefreshTokenPayload,
-  regenerateAccessToken,
-  setCookies,
-  getUserFromPayload,
-} from '../utils/jwt';
-import {findUserByEmail, addUser} from '../models/user.model';
-import {getCookie} from 'hono/cookie';
+import {generateTokenPair, setCookies} from '../utils/jwt';
+import {findUserByEmail, addUser, findUserById} from '../models/user.model';
+import {deleteCookie} from 'hono/cookie';
 import {
   badRequest,
   conflict,
@@ -72,41 +66,38 @@ export const loginHandler = async (c: Context) => {
   }
 };
 
-export const refreshAccessTokenHandler = async (c: Context) => {
+export const changePasswordHandler = async (c: Context) => {
   try {
-    await refreshAccessToken(c);
-    return c.json({accessToken: c.user.accessToken});
+    const body = await c.req.json();
+    const actualPassword = (body?.actualPassword || '').toString();
+    const newPassword = (body?.newPassword || '').toString();
+    if (!actualPassword || !newPassword)
+      return badRequest(c, 'Both passwords are required');
+    if (newPassword.length < 8)
+      return badRequest(c, 'New password must be at least 8 characters');
+
+    const user = await findUserById(c.user.id);
+    if (
+      !user ||
+      !(await Bun.password.verify(actualPassword, user.password_hash))
+    )
+      return unauthorized(c);
+
+    await user.updatePassword(newPassword);
+    return c.json({message: 'Password changed successfully'});
   } catch (err: any) {
-    return unauthorized(c);
+    console.error('Error occurred during password change:', err);
+    return internalServerError(c);
   }
 };
 
-const refreshAccessToken = async (c: Context) => {
-  const refreshToken = getCookie(c, `${cookieNamePrefix}JWT`);
-  const fingerprint = getCookie(c, `${cookieNamePrefix}Fgp`);
-
+export const logoutHandler = async (c: Context) => {
   try {
-    if (!refreshToken || !fingerprint) return unauthorized(c);
-
-    const payload = await getRefreshTokenPayload(refreshToken, fingerprint);
-    const user = await getUserFromPayload(payload);
-    if (!user) throw new Error('User not found');
-
-    const accessToken = await regenerateAccessToken(
-      user.id.toString(),
-      user.admin,
-      fingerprint
-    );
-    c.user = {
-      id: user.id,
-      admin: user.admin,
-      email: user.email,
-      balance: user.balance,
-      accessToken,
-    };
+    deleteCookie(c, `${cookieNamePrefix}JWT`);
+    deleteCookie(c, `${cookieNamePrefix}Fgp`);
+    return c.json({message: 'Logged out successfully'});
   } catch (err: any) {
-    const errorMessage = 'Error refreshing access token';
-    console.error(`${errorMessage}:`, err);
-    throw new Error(errorMessage);
+    console.error('Error occurred during logout:', err);
+    return internalServerError(c);
   }
 };

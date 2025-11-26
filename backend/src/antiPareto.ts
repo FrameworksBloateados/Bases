@@ -58,13 +58,12 @@ const createGenericAPICrudForTheAntiParetoRule = async (
     APIRoute,
     isPublicPut
   );
-  const putCsvDoc = await antiParetoDoc.createPutCsvDoc(APIRoute, isPublicPut);
   const deleteDoc = await antiParetoDoc.createDeleteDoc(
     APIRoute,
     isPublicDelete
   );
 
-  App.get(`/${APIRoute}`, getAllDoc.describer, async c => {
+  App.get(`/${APIRoute}/json`, getAllDoc.describer, async c => {
     if (!isPublicGet && !c.user.admin) return forbidden(c);
     const result = await sql`SELECT * FROM ${sql(APIRoute)}`; // Safe from SQL injection, see https://bun.com/docs/runtime/sql.
     return c.json(result);
@@ -108,20 +107,6 @@ const createGenericAPICrudForTheAntiParetoRule = async (
       const {id} = c.req.param();
       const body = await c.req.json();
       await updateData(body);
-      return c.json({message: `PUT request to ${APIRoute} with id ${id}`});
-    } catch (error) {
-      return c.json({message: `Invalid request body for PUT ${APIRoute}`}, 400);
-    }
-  });
-
-  App.put(`/${APIRoute}/:id/csv`, putCsvDoc.describer, async c => {
-    if (!isPublicPut && !c.user.admin) return forbidden(c);
-    try {
-      const {id} = c.req.param();
-      const body = await c.req.parseBody();
-      const csv = body['file'] as File;
-      const json = csvToJson.csvStringToJson(await csv.text());
-      await updateData(json);
       return c.json({message: `PUT request to ${APIRoute} with id ${id}`});
     } catch (error) {
       return c.json({message: `Invalid request body for PUT ${APIRoute}`}, 400);

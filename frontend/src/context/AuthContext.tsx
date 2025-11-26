@@ -52,7 +52,7 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
   };
 
   const logout = async () => {
-    await logoutUser();
+    await logoutUser(accessToken);
     setAccessToken(null);
   };
 

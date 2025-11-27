@@ -113,7 +113,7 @@ export const authenticatedFetch = async (
     
     try {
       const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.error || errorMessage;
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
     } catch {
       errorMessage = errorText || errorMessage;
     }

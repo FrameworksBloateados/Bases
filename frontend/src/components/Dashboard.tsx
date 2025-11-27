@@ -53,6 +53,25 @@ export function Dashboard() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [jsonInput, setJsonInput] = useState<string>('');
   const [isAdding, setIsAdding] = useState(false);
+  const [isModeTransitioning, setIsModeTransitioning] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  
+  // Estados para cambio de contraseña
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [isChangePasswordModalClosing, setIsChangePasswordModalClosing] = useState(false);
+  const [actualPassword, setActualPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  
+  // Estados para cambio de email
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+  const [isChangeEmailModalClosing, setIsChangeEmailModalClosing] = useState(false);
+  const [emailPassword, setEmailPassword] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     if (
@@ -113,7 +132,10 @@ export function Dashboard() {
       });
       setTableData(sortedData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error loading table data');
+      const errorMessage = err instanceof Error ? err.message : 'Error loading table data';
+      setError(errorMessage);
+      console.error('Error fetching table data:', err);
+      // Don't break the UI, just show the error
     } finally {
       setLoadingData(false);
     }
@@ -228,17 +250,23 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Error al guardar los cambios');
+        let errorMessage = 'Error al guardar los cambios';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (parseError) {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       // Refresh table data and close modal
       await fetchTableData(selectedTable);
       handleCloseModal();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Error al guardar los cambios'
-      );
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al guardar los cambios';
+      setError(errorMsg);
+      console.error('Error in handleSaveChanges:', err);
     } finally {
       setIsSaving(false);
     }
@@ -274,6 +302,18 @@ export function Dashboard() {
       setNewRows([{}]);
       setCsvFile(null);
       setJsonInput('');
+      setIsModeTransitioning(false);
+      setModalError(null);
+    }, 300);
+  };
+
+  const handleModeChange = (mode: 'web' | 'csv' | 'json') => {
+    if (mode === addMode) return;
+    
+    setIsModeTransitioning(true);
+    setTimeout(() => {
+      setAddMode(mode);
+      setIsModeTransitioning(false);
     }, 300);
   };
 
@@ -293,9 +333,26 @@ export function Dashboard() {
     setNewRows(updated);
   };
 
+  const areRequiredFieldsFilled = () => {
+    if (!selectedTableInfo) return false;
+    
+    // Get required fields (not nullable and no default)
+    const requiredFields = selectedTableInfo.columns.filter(
+      col => !col.nullable && !col.default && col.name !== 'id'
+    );
+
+    // Check if all rows have all required fields filled
+    return newRows.every(row => {
+      return requiredFields.every(field => {
+        const value = row[field.name];
+        return value !== undefined && value !== null && value !== '';
+      });
+    });
+  };
+
   const handleSubmitWeb = async () => {
     setIsAdding(true);
-    setError(null);
+    setModalError(null);
 
     try {
       // Filter out empty string values from each row
@@ -321,14 +378,75 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Error al agregar las filas');
+        let errorMessage = 'Error al agregar las filas';
+        const statusCode = response.status;
+        
+        try {
+          const errorData = await response.json();
+          const backendMessage = errorData.message || errorData.error;
+          
+          // Provide context based on status code
+          if (statusCode === 400) {
+            if (backendMessage) {
+              // Check for common error patterns
+              if (backendMessage.includes('foreign key') || backendMessage.includes('FOREIGN KEY')) {
+                errorMessage = `❌ Error de referencia: Verificá que los IDs que ingresaste existan en las tablas relacionadas.\n\nDetalle: ${backendMessage}`;
+              } else if (backendMessage.includes('unique') || backendMessage.includes('UNIQUE')) {
+                errorMessage = `❌ Error de duplicado: Ya existe un registro con ese valor único.\n\nDetalle: ${backendMessage}`;
+              } else if (backendMessage.includes('not null') || backendMessage.includes('NOT NULL')) {
+                errorMessage = `❌ Campo obligatorio faltante: Completá todos los campos requeridos.\n\nDetalle: ${backendMessage}`;
+              } else if (backendMessage.includes('invalid') || backendMessage.includes('type')) {
+                errorMessage = `❌ Tipo de dato incorrecto: Verificá que los valores tengan el formato correcto.\n\nDetalle: ${backendMessage}`;
+              } else {
+                errorMessage = `❌ Bad Request (400): ${backendMessage}`;
+              }
+            } else {
+              errorMessage = `❌ Bad Request (400): Hay un problema con los datos que enviaste. Verificá los valores ingresados.`;
+            }
+          } else if (statusCode === 401) {
+            errorMessage = `🔒 No autorizado (401): Tu sesión expiró. Por favor, volvé a iniciar sesión.`;
+          } else if (statusCode === 403) {
+            errorMessage = `🚫 Prohibido (403): No tenés permisos para realizar esta acción.`;
+          } else if (statusCode === 404) {
+            errorMessage = `🔍 No encontrado (404): La tabla o recurso no existe.`;
+          } else if (statusCode >= 500) {
+            errorMessage = `⚠️ Error del servidor (${statusCode}): ${backendMessage || 'Algo salió mal en el servidor. Intentá de nuevo más tarde.'}`;
+          } else if (backendMessage) {
+            errorMessage = `❌ Error ${statusCode}: ${backendMessage}`;
+          } else {
+            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
+          }
+        } catch (parseError) {
+          // If we can't parse JSON, provide basic status info
+          if (statusCode === 400) {
+            errorMessage = `❌ Bad Request (400): Hay un problema con los datos. Verificá que todos los campos tengan el formato correcto.`;
+          } else if (statusCode === 401) {
+            errorMessage = `🔒 No autorizado (401): Tu sesión expiró.`;
+          } else if (statusCode === 403) {
+            errorMessage = `🚫 Prohibido (403): No tenés permisos.`;
+          } else if (statusCode === 404) {
+            errorMessage = `🔍 No encontrado (404): Recurso no existe.`;
+          } else if (statusCode >= 500) {
+            errorMessage = `⚠️ Error del servidor (${statusCode}): ${response.statusText}`;
+          } else {
+            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
       handleCloseAddModal();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al agregar las filas');
+      let errorMsg = 'Error desconocido al agregar las filas';
+      if (err instanceof Error) {
+        errorMsg = err.message;
+      } else if (typeof err === 'string') {
+        errorMsg = err;
+      }
+      setModalError(errorMsg);
+      console.error('Error in handleSubmitWeb:', err);
+      // Don't close modal on error so user can see the error and try again
     } finally {
       setIsAdding(false);
     }
@@ -336,12 +454,12 @@ export function Dashboard() {
 
   const handleSubmitCsv = async () => {
     if (!csvFile) {
-      setError('Por favor selecciona un archivo CSV');
+      setModalError('Por favor selecciona un archivo CSV');
       return;
     }
 
     setIsAdding(true);
-    setError(null);
+    setModalError(null);
 
     try {
       const formData = new FormData();
@@ -356,14 +474,53 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Error al procesar el archivo CSV');
+        let errorMessage = 'Error al procesar el archivo CSV';
+        const statusCode = response.status;
+        
+        try {
+          const errorData = await response.json();
+          const backendMessage = errorData.message || errorData.error;
+          
+          if (statusCode === 400) {
+            if (backendMessage) {
+              if (backendMessage.includes('foreign key') || backendMessage.includes('FOREIGN KEY')) {
+                errorMessage = `❌ Error de referencia: El CSV contiene IDs que no existen en las tablas relacionadas.\n\nDetalle: ${backendMessage}`;
+              } else if (backendMessage.includes('unique') || backendMessage.includes('UNIQUE')) {
+                errorMessage = `❌ Error de duplicado: El CSV contiene valores duplicados.\n\nDetalle: ${backendMessage}`;
+              } else if (backendMessage.includes('CSV') || backendMessage.includes('format')) {
+                errorMessage = `📄 Error de formato CSV: Verificá que el archivo tenga el formato correcto.\n\nDetalle: ${backendMessage}`;
+              } else {
+                errorMessage = `❌ Bad Request (400): ${backendMessage}`;
+              }
+            } else {
+              errorMessage = `❌ Bad Request (400): Hay un problema con el archivo CSV.`;
+            }
+          } else if (statusCode >= 500) {
+            errorMessage = `⚠️ Error del servidor (${statusCode}): ${backendMessage || response.statusText}`;
+          } else if (backendMessage) {
+            errorMessage = `❌ Error ${statusCode}: ${backendMessage}`;
+          } else {
+            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
+          }
+        } catch (parseError) {
+          if (statusCode === 400) {
+            errorMessage = `❌ Bad Request (400): Problema con el archivo CSV.`;
+          } else if (statusCode >= 500) {
+            errorMessage = `⚠️ Error del servidor (${statusCode}): ${response.statusText}`;
+          } else {
+            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
       handleCloseAddModal();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al procesar el archivo CSV');
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al procesar el archivo CSV';
+      setModalError(errorMsg);
+      console.error('Error in handleSubmitCsv:', err);
+      // Don't close modal on error so user can see the error and try again
     } finally {
       setIsAdding(false);
     }
@@ -371,12 +528,12 @@ export function Dashboard() {
 
   const handleSubmitJson = async () => {
     if (!jsonInput.trim()) {
-      setError('Por favor ingresa un JSON válido');
+      setModalError('Por favor ingresa un JSON válido');
       return;
     }
 
     setIsAdding(true);
-    setError(null);
+    setModalError(null);
 
     try {
       // Parse and validate JSON
@@ -413,14 +570,55 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Error al insertar los datos');
+        let errorMessage = 'Error al insertar los datos';
+        const statusCode = response.status;
+        
+        try {
+          const errorData = await response.json();
+          const backendMessage = errorData.message || errorData.error;
+          
+          if (statusCode === 400) {
+            if (backendMessage) {
+              if (backendMessage.includes('foreign key') || backendMessage.includes('FOREIGN KEY')) {
+                errorMessage = `❌ Error de referencia: El JSON contiene IDs que no existen en las tablas relacionadas.\n\nDetalle: ${backendMessage}`;
+              } else if (backendMessage.includes('unique') || backendMessage.includes('UNIQUE')) {
+                errorMessage = `❌ Error de duplicado: El JSON contiene valores duplicados.\n\nDetalle: ${backendMessage}`;
+              } else if (backendMessage.includes('not null') || backendMessage.includes('NOT NULL')) {
+                errorMessage = `❌ Campo obligatorio faltante: Falta un campo requerido en el JSON.\n\nDetalle: ${backendMessage}`;
+              } else if (backendMessage.includes('invalid') || backendMessage.includes('type')) {
+                errorMessage = `❌ Tipo de dato incorrecto: El JSON tiene valores con formato incorrecto.\n\nDetalle: ${backendMessage}`;
+              } else {
+                errorMessage = `❌ Bad Request (400): ${backendMessage}`;
+              }
+            } else {
+              errorMessage = `❌ Bad Request (400): Hay un problema con el JSON enviado.`;
+            }
+          } else if (statusCode >= 500) {
+            errorMessage = `⚠️ Error del servidor (${statusCode}): ${backendMessage || response.statusText}`;
+          } else if (backendMessage) {
+            errorMessage = `❌ Error ${statusCode}: ${backendMessage}`;
+          } else {
+            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
+          }
+        } catch (parseError) {
+          if (statusCode === 400) {
+            errorMessage = `❌ Bad Request (400): Problema con los datos del JSON.`;
+          } else if (statusCode >= 500) {
+            errorMessage = `⚠️ Error del servidor (${statusCode}): ${response.statusText}`;
+          } else {
+            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
       handleCloseAddModal();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al procesar el JSON');
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al procesar el JSON';
+      setModalError(errorMsg);
+      console.error('Error in handleSubmitJson:', err);
+      // Don't close modal on error so user can see the error and try again
     } finally {
       setIsAdding(false);
     }
@@ -452,16 +650,148 @@ export function Dashboard() {
       // Check if all deletions were successful
       const failedDeletions = results.filter(r => !r.ok);
       if (failedDeletions.length > 0) {
-        throw new Error(`Failed to delete ${failedDeletions.length} record(s)`);
+        // Try to get error message from first failed deletion
+        let errorMessage = `No se pudieron eliminar ${failedDeletions.length} registro(s)`;
+        if (failedDeletions[0]) {
+          try {
+            const errorData = await failedDeletions[0].json();
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          } catch (parseError) {
+            // Keep default message
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       // Refresh table data and clear selection
       await fetchTableData(selectedTable);
       setSelectedRows(new Set());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar los registros');
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al eliminar los registros';
+      setError(errorMsg);
+      console.error('Error in handleDeleteSelected:', err);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleCloseChangePasswordModal = () => {
+    setIsChangePasswordModalClosing(true);
+    setTimeout(() => {
+      setShowChangePasswordModal(false);
+      setIsChangePasswordModalClosing(false);
+      setActualPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordError(null);
+    }, 300);
+  };
+
+  const handleChangePassword = async () => {
+    if (!actualPassword || !newPassword || !confirmPassword) {
+      setPasswordError('Todos los campos son requeridos');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Las contraseñas no coinciden');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    setPasswordError(null);
+
+    try {
+      const response = await authenticatedFetch(
+        'http://127-0-0-1.sslip.io/api/v1/user/changePassword',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ actualPassword, newPassword }),
+        }
+      );
+
+      if (!response.ok) {
+        let errorMessage = 'Error al cambiar la contraseña';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (parseError) {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      handleCloseChangePasswordModal();
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al cambiar la contraseña';
+      setPasswordError(errorMsg);
+      console.error('Error in handleChangePassword:', err);
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleCloseChangeEmailModal = () => {
+    setIsChangeEmailModalClosing(true);
+    setTimeout(() => {
+      setShowChangeEmailModal(false);
+      setIsChangeEmailModalClosing(false);
+      setEmailPassword('');
+      setNewEmail('');
+      setEmailError(null);
+    }, 300);
+  };
+
+  const handleChangeEmail = async () => {
+    if (!emailPassword || !newEmail) {
+      setEmailError('Todos los campos son requeridos');
+      return;
+    }
+    if (!newEmail.includes('@')) {
+      setEmailError('El email no es válido');
+      return;
+    }
+
+    setIsChangingEmail(true);
+    setEmailError(null);
+
+    try {
+      const response = await authenticatedFetch(
+        'http://127-0-0-1.sslip.io/api/v1/user/changeEmail',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ password: emailPassword, newEmail }),
+        }
+      );
+
+      if (!response.ok) {
+        let errorMessage = 'Error al cambiar el email';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (parseError) {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      await refetchUserInfo();
+      handleCloseChangeEmailModal();
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al cambiar el email';
+      setEmailError(errorMsg);
+      console.error('Error in handleChangeEmail:', err);
+    } finally {
+      setIsChangingEmail(false);
     }
   };
 
@@ -584,7 +914,12 @@ export function Dashboard() {
                 isTransitioning ? 'opacity-0' : 'opacity-100'
               }`}>
                 {activeSection === 'profile' && (
-                  <ProfileSection userInfo={userInfo} userError={userError} />
+                  <ProfileSection 
+                    userInfo={userInfo} 
+                    userError={userError}
+                    onChangePassword={() => setShowChangePasswordModal(true)}
+                    onChangeEmail={() => setShowChangeEmailModal(true)}
+                  />
                 )}
 
                 {activeSection === 'database' && userInfo?.admin && (
@@ -657,8 +992,7 @@ export function Dashboard() {
                   Confirmar eliminación
                 </h3>
                 <p className="text-slate-300 text-sm">
-                  ¿Estás seguro de que deseas eliminar {selectedRows.size} {selectedRows.size === 1 ? 'registro' : 'registros'}? 
-                  Esta acción no se puede deshacer.
+                  ¿Estás seguro de que querés fletar {selectedRows.size} {selectedRows.size === 1 ? 'registro' : 'registros'}? <b>Esta acción no se puede deshacer.</b>
                 </p>
               </div>
             </div>
@@ -752,7 +1086,7 @@ export function Dashboard() {
             {/* Mode Tabs */}
             <div className="grid grid-cols-3 gap-3 mb-6 shrink-0">
               <button
-                onClick={() => setAddMode('web')}
+                onClick={() => handleModeChange('web')}
                 className={`px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                   addMode === 'web'
                     ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30 shadow-lg'
@@ -765,7 +1099,7 @@ export function Dashboard() {
                 Web
               </button>
               <button
-                onClick={() => setAddMode('json')}
+                onClick={() => handleModeChange('json')}
                 className={`px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                   addMode === 'json'
                     ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30 shadow-lg'
@@ -778,7 +1112,7 @@ export function Dashboard() {
                 JSON
               </button>
               <button
-                onClick={() => setAddMode('csv')}
+                onClick={() => handleModeChange('csv')}
                 className={`px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                   addMode === 'csv'
                     ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30 shadow-lg'
@@ -793,7 +1127,9 @@ export function Dashboard() {
             </div>
 
             {/* Modal Content */}
-            <div className="overflow-y-auto pr-2 flex-1 min-h-0">
+            <div className={`overflow-y-auto pr-2 flex-1 min-h-0 transition-opacity duration-300 ${
+              isModeTransitioning ? 'opacity-0' : 'opacity-100'
+            }`}>
               {addMode === 'web' ? (
                 <div className="space-y-4">
                   {newRows.map((row, rowIndex) => (
@@ -810,21 +1146,62 @@ export function Dashboard() {
                         )}
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {selectedTableInfo?.columns.map(col => (
-                          <div key={col.name}>
-                            <label className="block text-sm text-slate-300 font-semibold mb-1">
-                              {col.name}
-                              {!col.nullable && <span className="text-red-400 ml-1">*</span>}
-                            </label>
-                            <input
-                              type="text"
-                              value={row[col.name] || ''}
-                              onChange={(e) => handleRowFieldChange(rowIndex, col.name, e.target.value)}
-                              placeholder={col.default ? `Default: ${col.default}` : ''}
-                              className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
-                            />
-                          </div>
-                        ))}
+                        {selectedTableInfo?.columns.map(col => {
+                          const isRequired = !col.nullable && !col.default && col.name !== 'id';
+                          const isTimestamp = col.type.toLowerCase().includes('timestamp') || 
+                                            col.name.toLowerCase().includes('_at') || 
+                                            col.name.toLowerCase().includes('date');
+                          const isNumber = col.type.toLowerCase().includes('int') || 
+                                         col.type.toLowerCase().includes('float') || 
+                                         col.type.toLowerCase().includes('decimal') || 
+                                         col.type.toLowerCase().includes('numeric');
+                          const isBoolean = col.type.toLowerCase().includes('bool');
+                          
+                          return (
+                            <div key={col.name}>
+                              <label className="block text-sm text-slate-300 font-semibold mb-1">
+                                {col.name}
+                                {isRequired && <span className="text-red-400 ml-1">*</span>}
+                                {!isRequired && col.default && <span className=""></span>}
+                              </label>
+                              {isBoolean ? (
+                                <select
+                                  value={row[col.name] !== undefined ? String(row[col.name]) : ''}
+                                  onChange={(e) => handleRowFieldChange(rowIndex, col.name, e.target.value === 'true')}
+                                  className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
+                                >
+                                  <option value="">Seleccionar...</option>
+                                  <option value="true">true</option>
+                                  <option value="false">false</option>
+                                </select>
+                              ) : isTimestamp ? (
+                                <input
+                                  type="datetime-local"
+                                  value={row[col.name] ? new Date(row[col.name]).toISOString().slice(0, 16) : ''}
+                                  onChange={(e) => handleRowFieldChange(rowIndex, col.name, e.target.value ? new Date(e.target.value).toISOString() : '')}
+                                  className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
+                                />
+                              ) : isNumber ? (
+                                <input
+                                  type="number"
+                                  step="any"
+                                  value={row[col.name] !== undefined ? row[col.name] : ''}
+                                  onChange={(e) => handleRowFieldChange(rowIndex, col.name, e.target.value ? parseFloat(e.target.value) : '')}
+                                  placeholder={col.default ? `Default: ${col.default}` : ''}
+                                  className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
+                                />
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={row[col.name] || ''}
+                                  onChange={(e) => handleRowFieldChange(rowIndex, col.name, e.target.value)}
+                                  placeholder={col.default ? `Default: ${col.default}` : ''}
+                                  className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -839,7 +1216,7 @@ export function Dashboard() {
                 <div className="space-y-4">
                   <div className="bg-slate-900/50 border border-white/20 rounded-lg p-4">
                     <label className="block text-sm text-slate-300 font-semibold mb-2">
-                      Pega tu JSON acá:
+                      Pegá tu JSON acá:
                     </label>
                     <textarea
                       value={jsonInput}
@@ -859,7 +1236,7 @@ export function Dashboard() {
                   </div>
                   <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4">
                     <p className="text-blue-300 text-sm">
-                      <strong>Formato esperado:</strong> Un objeto JSON o un array de objetos. Los campos vacíos serán omitidos automáticamente.
+                      <strong>Formato esperado:</strong> un objeto JSON o un array de objetos. Los campos vacíos serán omitidos automáticamente.
                     </p>
                   </div>
                 </div>
@@ -891,24 +1268,31 @@ export function Dashboard() {
                         />
                       </svg>
                       <span className="text-slate-300 font-semibold mb-1">
-                        {csvFile ? csvFile.name : 'Haz clic para seleccionar un archivo CSV'}
+                        {csvFile ? csvFile.name : 'Hacé clic acá para seleccionar un archivo CSV'}
                       </span>
                       <span className="text-slate-500 text-sm">
-                        o arrastra y suelta aquí
+                        o arrastra y soltá el archivo acá
                       </span>
                     </label>
                   </div>
                   <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4">
                     <p className="text-blue-300 text-sm">
-                      <strong>Formato esperado:</strong> El archivo CSV debe tener una fila de encabezados con los nombres de las columnas, seguida de las filas de datos.
+                      <strong>Formato esperado:</strong> el archivo CSV debe tener una fila de encabezados con los nombres de las columnas, seguida de las filas de datos.
                     </p>
                   </div>
                 </div>
               )}
 
-              {error && (
+              {modalError && (
                 <div className="mt-4 text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-sm">
-                  {error}
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1 whitespace-pre-wrap wrap-break-word">
+                      {modalError}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -924,9 +1308,9 @@ export function Dashboard() {
               </button>
               <button
                 onClick={addMode === 'web' ? handleSubmitWeb : addMode === 'json' ? handleSubmitJson : handleSubmitCsv}
-                disabled={isAdding || (addMode === 'csv' && !csvFile) || (addMode === 'json' && !jsonInput.trim())}
+                disabled={isAdding || (addMode === 'csv' && !csvFile) || (addMode === 'json' && !jsonInput.trim()) || (addMode === 'web' && !areRequiredFieldsFilled())}
                 className={`px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-all duration-300 ${
-                  isAdding || (addMode === 'csv' && !csvFile) || (addMode === 'json' && !jsonInput.trim())
+                  isAdding || (addMode === 'csv' && !csvFile) || (addMode === 'json' && !jsonInput.trim()) || (addMode === 'web' && !areRequiredFieldsFilled())
                     ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50'
                     : 'text-white bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:shadow-xl active:scale-99'
                 }`}
@@ -955,7 +1339,214 @@ export function Dashboard() {
                     Agregando...
                   </span>
                 ) : (
-                  'Añadir'
+                  'Insertar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showChangePasswordModal && (
+        <div
+          className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
+            isChangePasswordModalClosing ? 'animate-fade-out' : 'animate-fade-in'
+          }`}
+          onClick={handleCloseChangePasswordModal}
+        >
+          <div
+            className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-md w-full ${
+              isChangePasswordModalClosing ? 'animate-scale-out' : 'animate-scale-in'
+            }`}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  Cambiar contraseña
+                </h3>
+                <p className="text-slate-400 text-sm">
+                  Ingresá tu contraseña actual y la nueva
+                </p>
+              </div>
+              <button
+                onClick={handleCloseChangePasswordModal}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Contraseña actual
+                </label>
+                <input
+                  type="password"
+                  value={actualPassword}
+                  onChange={e => setActualPassword(e.target.value)}
+                  className="w-full bg-slate-700/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="Ingresa tu contraseña actual"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Nueva contraseña
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="w-full bg-slate-700/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="Mínimo 8 caracteres"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Confirmá la nueva contraseña
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="w-full bg-slate-700/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="Confirma tu nueva contraseña"
+                />
+              </div>
+
+              {passwordError && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                  <p className="text-red-400 text-sm">{passwordError}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                onClick={handleCloseChangePasswordModal}
+                disabled={isChangingPassword}
+                className="px-4 py-2 text-sm font-bold text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleChangePassword}
+                disabled={isChangingPassword}
+                className="px-6 py-2 text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-lg font-bold shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isChangingPassword ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Cambiando...
+                  </span>
+                ) : (
+                  'Cambiar contraseña'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Email Modal */}
+      {showChangeEmailModal && (
+        <div
+          className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
+            isChangeEmailModalClosing ? 'animate-fade-out' : 'animate-fade-in'
+          }`}
+          onClick={handleCloseChangeEmailModal}
+        >
+          <div
+            className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-md w-full ${
+              isChangeEmailModalClosing ? 'animate-scale-out' : 'animate-scale-in'
+            }`}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  Cambiar email
+                </h3>
+                <p className="text-slate-400 text-sm">
+                  Ingresa el nuevo email y tu contraseña actual
+                </p>
+              </div>
+              <button
+                onClick={handleCloseChangeEmailModal}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Nuevo email
+                </label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={e => setNewEmail(e.target.value)}
+                  className="w-full bg-slate-700/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500 transition-colors"
+                  placeholder="vos@dominio.tld"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Contraseña actual
+                </label>
+                <input
+                  type="password"
+                  value={emailPassword}
+                  onChange={e => setEmailPassword(e.target.value)}
+                  className="w-full bg-slate-700/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500 transition-colors"
+                  placeholder="Ingresa tu contraseña"
+                />
+              </div>
+
+              {emailError && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                  <p className="text-red-400 text-sm">{emailError}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                onClick={handleCloseChangeEmailModal}
+                disabled={isChangingEmail}
+                className="px-4 py-2 text-sm font-bold text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleChangeEmail}
+                disabled={isChangingEmail}
+                className="px-6 py-2 text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-lg font-bold shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isChangingEmail ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Cambiando...
+                  </span>
+                ) : (
+                  'Cambiar email'
                 )}
               </button>
             </div>
@@ -1204,9 +1795,11 @@ export function Dashboard() {
 type ProfileSectionProps = {
   userInfo: any;
   userError: string | null;
+  onChangePassword: () => void;
+  onChangeEmail: () => void;
 };
 
-function ProfileSection({userInfo, userError}: ProfileSectionProps) {
+function ProfileSection({userInfo, userError, onChangePassword, onChangeEmail}: ProfileSectionProps) {
   if (userError) {
     return (
       <div className="text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4">
@@ -1311,6 +1904,29 @@ function ProfileSection({userInfo, userError}: ProfileSectionProps) {
           value={userInfo.admin ? 'Administrador' : 'Usuario'}
           color={userInfo.admin ? 'yellow' : 'slate'}
         />
+      </div>
+
+      {/* Action Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <button
+          onClick={onChangePassword}
+          className="flex items-center justify-center gap-3 text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-lg p-4 shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 group"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+          <span className="font-semibold">Cambiar contraseña</span>
+        </button>
+
+        <button
+          onClick={onChangeEmail}
+          className="flex items-center justify-center gap-3 text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-lg p-4 shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 group"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <span className="font-semibold">Cambiar email</span>
+        </button>
       </div>
 
       <div className="bg-white/5 border border-white/10 rounded-lg p-4 mt-6">

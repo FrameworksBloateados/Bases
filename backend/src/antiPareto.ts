@@ -134,7 +134,6 @@ const createGenericAPICrudForTheAntiParetoRule = async (
     if (!isPublicPost && !c.user.admin) return forbidden(c);
     try {
       const body = await c.req.json();
-      console.log(body);
       await insertData(body);
       return c.json({message: `POST request to ${APIRoute}`});
     } catch (error) {
@@ -147,9 +146,7 @@ const createGenericAPICrudForTheAntiParetoRule = async (
     try {
       const body = await c.req.parseBody();
       const csv = body['file'] as File;
-      console.log(csv);
       const json = csvToJson.csvStringToJson(await csv.text());
-      console.log(json);
       await insertData(json);
       return c.json({message: `POST request to ${APIRoute}`});
     } catch (error) {

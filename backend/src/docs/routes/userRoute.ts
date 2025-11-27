@@ -120,7 +120,7 @@ export const changeEmail: RouteDocumentation = {
     'json',
     z.object({
       password: z.string().min(8),
-      newEmail: z.string().email(),
+      newEmail: z.string(),
     })
   ),
 };

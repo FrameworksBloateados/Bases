@@ -66,15 +66,15 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
-            Create Account
+            Creá tu cuenta
           </h2>
           <p className="text-slate-300 text-sm">
-            Join us and ruin your financial life!
+            ¡Unite a nosotros y arruiná tu vida financiera!
           </p>
         </div>
 
         <UsernameField
-          label={'Username'}
+          label={'Nombre de usuario'}
           username={username}
           onChangeHandler={setUsername}
         />
@@ -82,12 +82,12 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
         <EmailField label={'Email'} email={email} onChangeHandler={setEmail} />
 
         <PasswordField
-          label={'Password'}
+          label={'Contraseña'}
           password={password}
           onChangeHandler={setPassword}
         />
         <PasswordField
-          label={'Confirm Password'}
+          label={'Confirmar contraseña'}
           password={repeatedPassword}
           onChangeHandler={setRepeatedPassword}
         />
@@ -96,16 +96,16 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
           type="submit"
           className="w-full py-3 mt-2 font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99"
         >
-          Create Account
+          Crear cuenta
         </button>
 
         <p className="text-sm text-slate-300 mt-6 text-center">
-          Already have an account?{' '}
+          ¿Ya apostaste con nosotros?{' '}
           <Link
             to="/login"
             className="text-white font-semibold hover:text-slate-200 transition-colors duration-200 underline decoration-2 decoration-slate-400"
           >
-            Sign In
+            Iniciá sesión acá
           </Link>
         </p>
       </form>

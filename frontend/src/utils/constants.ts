@@ -28,6 +28,10 @@ export const API_ENDPOINTS = {
   PLAYER_MATCH_STATS: `${API_BASE_URL}/player_match_stats`,
 } as const;
 
+// Helper functions for dynamic endpoints
+export const getMatchResultsEndpoint = (matchId: number) =>
+  `${API_BASE_URL}/match/${matchId}/results`;
+
 // Helper function to build table endpoint
 export const getTableEndpoint = (tableName: string) =>
   `${API_BASE_URL}/${tableName}`;

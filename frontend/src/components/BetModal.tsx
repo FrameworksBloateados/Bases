@@ -86,7 +86,11 @@ export function BetModal({
         onKeyDown={handleKeyDown}
       />
 
-      {betError && <ErrorDisplay message={betError} />}
+      {betError && (
+        <div className="mb-4">
+          <ErrorDisplay message={betError} />
+        </div>
+      )}
 
       <ActionButtons
         onCancel={handleClose}

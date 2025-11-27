@@ -29,50 +29,47 @@ export function useMatchData() {
   });
   const [error, setError] = useState<string | null>(null);
 
+  const fetchData = async () => {
+    try {
+      setError(null);
+
+      const [matchesRes, teamsRes, playersRes, resultsRes, statsRes] =
+        await Promise.all([
+          authenticatedFetch(API_ENDPOINTS.MATCHES, {method: 'GET'}),
+          authenticatedFetch(API_ENDPOINTS.TEAMS, {
+            method: 'GET',
+          }),
+          authenticatedFetch(API_ENDPOINTS.PLAYERS, {method: 'GET'}),
+          authenticatedFetch(API_ENDPOINTS.MATCHES_RESULTS, {method: 'GET'}),
+          authenticatedFetch(API_ENDPOINTS.PLAYER_MATCH_STATS, {
+            method: 'GET',
+          }),
+        ]);
+
+      const matchesData: Match[] = await matchesRes.json();
+      const teamsData: Team[] = await teamsRes.json();
+      const playersData: Player[] = await playersRes.json();
+      const resultsData: MatchResult[] = await resultsRes.json();
+      const statsData: PlayerMatchStats[] = await statsRes.json();
+
+      setData({
+        matches: matchesData,
+        teams: teamsData,
+        players: playersData,
+        results: resultsData,
+        playerStats: statsData,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load match data.');
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated || isLoading) return;
-
-    const fetchData = async () => {
-      try {
-        setError(null);
-
-        const [matchesRes, teamsRes, playersRes, resultsRes, statsRes] =
-          await Promise.all([
-            authenticatedFetch(API_ENDPOINTS.MATCHES, {method: 'GET'}),
-            authenticatedFetch(API_ENDPOINTS.TEAMS, {
-              method: 'GET',
-            }),
-            authenticatedFetch(API_ENDPOINTS.PLAYERS, {method: 'GET'}),
-            authenticatedFetch(API_ENDPOINTS.MATCHES_RESULTS, {method: 'GET'}),
-            authenticatedFetch(API_ENDPOINTS.PLAYER_MATCH_STATS, {
-              method: 'GET',
-            }),
-          ]);
-
-        const matchesData: Match[] = await matchesRes.json();
-        const teamsData: Team[] = await teamsRes.json();
-        const playersData: Player[] = await playersRes.json();
-        const resultsData: MatchResult[] = await resultsRes.json();
-        const statsData: PlayerMatchStats[] = await statsRes.json();
-
-        setData({
-          matches: matchesData,
-          teams: teamsData,
-          players: playersData,
-          results: resultsData,
-          playerStats: statsData,
-        });
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load match data.'
-        );
-      }
-    };
-
     fetchData();
   }, [authenticatedFetch, isAuthenticated, isLoading]);
 
-  return {...data, error};
+  return {...data, error, refetch: fetchData};
 }
 
 export function useUserData() {

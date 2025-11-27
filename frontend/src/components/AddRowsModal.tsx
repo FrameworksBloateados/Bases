@@ -165,7 +165,7 @@ export function AddRowsModal({
       onClose={handleClose}
       maxWidth="2xl"
     >
-      <div className="max-h-[80vh] flex flex-col">
+      <div className="max-h-[80vh] flex flex-col min-h-0 overflow-hidden">
         <ModalHeader selectedTable={selectedTable} onClose={handleClose} />
         <ModeTabs addMode={addMode} onModeChange={handleModeChange} />
         <ModalContent
@@ -360,7 +360,7 @@ function ModalContent({
   onCsvFileChange,
 }: ModalContentProps) {
   return (
-    <div>
+    <div className="flex-1 min-h-0 flex flex-col">
       <div
         className={`overflow-y-auto pr-2 flex-1 min-h-0 transition-opacity duration-300 ${
           isModeTransitioning ? 'opacity-0' : 'opacity-100'

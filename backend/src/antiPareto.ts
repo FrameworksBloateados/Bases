@@ -144,7 +144,7 @@ const createGenericAPICrudForTheAntiParetoRule = async (
       return c.json({message: `Solicitud POST exitosa a ${APIRoute}`});
     } catch (error) {
       return c.json(
-        {message: `Hubo un error al insertar datos en ${APIRoute}`},
+        {message: `Hubo un error al insertar los datos en la tabla ${APIRoute}`},
         400
       );
     }

@@ -1,13 +1,6 @@
 import type {Context} from 'hono';
-import {
-  findUserById,
-  findUserByEmail,
-} from '../models/user.model';
-import {
-  badRequest,
-  internalServerError,
-  unauthorized,
-} from '../utils/replies';
+import {findUserById, findUserByEmail} from '../models/user.model';
+import {badRequest, internalServerError, unauthorized} from '../utils/replies';
 
 export const changePasswordHandler = async (c: Context) => {
   try {
@@ -17,14 +10,17 @@ export const changePasswordHandler = async (c: Context) => {
     if (!actualPassword || !newPassword)
       return badRequest(c, 'Ambas contraseñas son requeridas');
     if (newPassword.length < 8)
-      return badRequest(c, 'La nueva contraseña debe tener al menos 8 caracteres');
+      return badRequest(
+        c,
+        'La nueva contraseña debe tener al menos 8 caracteres'
+      );
 
     const user = await findUserById(c.user.id);
     if (
       !user ||
       !(await Bun.password.verify(actualPassword, user.password_hash))
     )
-      return unauthorized(c);
+      return unauthorized(c, 'Contraseña incorrecta');
 
     await user.updatePassword(newPassword);
     return c.json({message: 'Contraseña cambiada exitosamente'});
@@ -46,11 +42,10 @@ export const changeEmailHandler = async (c: Context) => {
 
     const user = await findUserById(c.user.id);
     if (!user || !(await Bun.password.verify(password, user.password_hash)))
-      return unauthorized(c);
+      return unauthorized(c, 'Contraseña incorrecta');
 
     const existingUser = await findUserByEmail(newEmail);
-    if (existingUser)
-      return badRequest(c, 'El email ya está en uso');
+    if (existingUser) return badRequest(c, 'El email ya está en uso');
 
     await user.updateEmail(newEmail);
     return c.json({message: 'Email cambiado exitosamente'});

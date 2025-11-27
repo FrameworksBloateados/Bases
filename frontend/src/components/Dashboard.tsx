@@ -1,7 +1,7 @@
 import {useState, useEffect} from 'react';
 import {useNavigate} from 'react-router';
 import {useAuth} from '../context/AuthContext';
-import {useUserData} from '../hooks/useMatchData';
+import {useUserData, useMatchData} from '../hooks/useMatchData';
 import {useModalState} from '../hooks/useModalState';
 import {
   getTableEndpoint,
@@ -11,6 +11,7 @@ import {
 import {parseErrorMessage} from '../utils/errorHandling';
 import {logger} from '../utils/logger';
 import {LoadingSpinner} from './LoadingSpinner';
+import {Toast} from './Toast';
 import {BackButton} from './BackButton';
 import {ChangePasswordModal} from './ChangePasswordModal';
 import {ChangeEmailModal} from './ChangeEmailModal';
@@ -18,6 +19,13 @@ import {ConfirmModal} from './ConfirmModal';
 import {TableSelector} from './TableSelector';
 import {RowDetailModal} from './RowDetailModal';
 import {AddRowsModal} from './AddRowsModal';
+import {MatchCard} from './MatchCard';
+import UploadMatchResultsModal from './UploadMatchResultsModal';
+import {
+  enrichMatches,
+  filterFinishedMatchesWithoutResults,
+} from '../utils/matchUtils';
+import {getMatchResultsEndpoint} from '../utils/constants';
 
 type TableInfo = {
   name: string;
@@ -36,9 +44,9 @@ export function Dashboard() {
   const {authenticatedFetch, logout} = useAuth();
   const {userInfo, error: userError, refetchUserInfo} = useUserData();
 
-  const [activeSection, setActiveSection] = useState<'profile' | 'database'>(
-    'profile'
-  );
+  const [activeSection, setActiveSection] = useState<
+    'profile' | 'database' | 'uploadMatches'
+  >('profile');
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [selectedTable, setSelectedTable] = useState<string>('');
   const [tableData, setTableData] = useState<TableData>([]);
@@ -59,6 +67,81 @@ export function Dashboard() {
   const [isAdding, setIsAdding] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [rowModalError, setRowModalError] = useState<string | null>(null);
+
+  // Match data for admin: finished matches without results
+  const {
+    matches,
+    teams,
+    players,
+    results,
+    playerStats,
+    error: matchError,
+    refetch: refetchMatchData,
+  } = useMatchData();
+
+  const enrichedMatches = enrichMatches({
+    matches,
+    teams,
+    players,
+    results,
+    playerStats,
+  });
+
+  const matchesToProcess = filterFinishedMatchesWithoutResults(enrichedMatches);
+
+  const uploadModal = useModalState();
+  const [selectedMatchToUpload, setSelectedMatchToUpload] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+
+  const openUploadModal = (match: any) => {
+    setSelectedMatchToUpload(match);
+    setUploadError(null);
+    uploadModal.open();
+  };
+
+  const handleUploadMatchResults = async (resultsFile: File, statsFile: File) => {
+    if (!selectedMatchToUpload) return;
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const fd = new FormData();
+      fd.append('results', resultsFile);
+      fd.append('stats', statsFile);
+
+      const resp = await authenticatedFetch(
+        getMatchResultsEndpoint(selectedMatchToUpload.id),
+        {
+          method: 'POST',
+          body: fd,
+        }
+      );
+
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(
+          text || `Error en la subida: ${resp.status} ${resp.statusText}`
+        );
+      }
+      uploadModal.close();
+      setSelectedMatchToUpload(null);
+      // show success and refresh match data without full reload
+      setUploadSuccess('Cargado correctamente');
+      if (refetchMatchData) {
+        try {
+          await refetchMatchData();
+        } catch (err) {
+          // ignore refetch errors (data will refresh on next visit)
+        }
+      }
+      setTimeout(() => setUploadSuccess(null), 3000);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Password change states
   const passwordModal = useModalState();
@@ -520,6 +603,37 @@ export function Dashboard() {
                   <div className="space-y-2">
                     <button
                       onClick={() => {
+                        if (activeSection !== 'uploadMatches') {
+                          setIsTransitioning(true);
+                          setTimeout(() => {
+                            setActiveSection('uploadMatches');
+                            setIsTransitioning(false);
+                          }, 300);
+                        }
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 focus:outline-none select-none border ${
+                        activeSection === 'uploadMatches'
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
+                          : 'text-slate-300 hover:bg-white/5 active:bg-white/10 border-transparent'
+                      }`}
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      Cargar resultados
+                    </button>
+                    <button
+                      onClick={() => {
                         if (activeSection !== 'database') {
                           setIsTransitioning(true);
                           setTimeout(() => {
@@ -570,6 +684,38 @@ export function Dashboard() {
                   />
                 )}
 
+                {activeSection === 'uploadMatches' && userInfo?.admin && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-2xl font-bold text-white">Cargar resultados</h3>
+                      <div className="text-slate-400 text-sm">Subir resultados y estadísticas</div>
+                    </div>
+
+                    {/* upload success is shown via Toast */}
+
+                    <div>
+                      {matchesToProcess.length === 0 ? (
+                        <div className="text-slate-400">No hay partidos pendientes para procesar.</div>
+                      ) : (
+                        <div className="space-y-3">
+                          {matchesToProcess.map(m => (
+                            <MatchCard
+                              key={m.id}
+                              match={m}
+                              onMatchClick={() => openUploadModal(m)}
+                              onBetClick={() => {}}
+                              customAction={{
+                                text: 'Cargar resultados',
+                                onClick: () => openUploadModal(m),
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {activeSection === 'database' && userInfo?.admin && (
                   <DatabaseSection
                     tables={tables}
@@ -591,6 +737,8 @@ export function Dashboard() {
                     onShowAddModal={addModal.open}
                     isDeleting={isDeleting}
                     isTransitioning={isTransitioning}
+                    ongoingMatches={matchesToProcess}
+                    onOpenUploadMatch={openUploadModal}
                   />
                 )}
               </div>
@@ -666,6 +814,30 @@ export function Dashboard() {
         error={emailError}
       />
 
+      <UploadMatchResultsModal
+        isOpen={uploadModal.isOpen}
+        isClosing={uploadModal.isClosing}
+        match={
+          selectedMatchToUpload
+            ? {
+                id: selectedMatchToUpload.id,
+                match_date: selectedMatchToUpload.match_date,
+                team_a_name: selectedMatchToUpload.team_a?.name,
+                team_b_name: selectedMatchToUpload.team_b?.name,
+                team_a_image: selectedMatchToUpload.team_a?.image_url,
+                team_b_image: selectedMatchToUpload.team_b?.image_url,
+              }
+            : null
+        }
+        onClose={() => {
+          uploadModal.close();
+          setTimeout(() => setUploadError(null), 300);
+        }}
+        onSubmit={handleUploadMatchResults}
+        isLoading={isUploading}
+        error={uploadError}
+      />
+
       <RowDetailModal
         isOpen={rowModal.isOpen}
         isClosing={rowModal.isClosing}
@@ -676,6 +848,14 @@ export function Dashboard() {
         isSaving={isSaving}
         error={rowModalError}
       />
+      {uploadSuccess && (
+        <Toast
+          message={uploadSuccess}
+          type="success"
+          onClose={() => setUploadSuccess(null)}
+          duration={2500}
+        />
+      )}
     </div>
   );
 }
@@ -930,6 +1110,8 @@ type DatabaseSectionProps = {
   onShowAddModal: () => void;
   isDeleting: boolean;
   isTransitioning: boolean;
+  ongoingMatches?: any[];
+  onOpenUploadMatch?: (match: any) => void;
 };
 
 function DatabaseSection({
@@ -949,6 +1131,8 @@ function DatabaseSection({
   onShowAddModal,
   isDeleting,
   isTransitioning,
+  ongoingMatches = [],
+  onOpenUploadMatch,
 }: DatabaseSectionProps) {
   if (loadingTables) {
     return (

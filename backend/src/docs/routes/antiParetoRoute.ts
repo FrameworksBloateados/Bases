@@ -532,3 +532,35 @@ export const createDeleteDoc = async (
     }),
   };
 };
+
+export const createGetTablesDoc = async (): Promise<RouteDocumentationWithoutValidator> => {
+  const tableSchema = z.object({
+    name: z.string(),
+    columns: z.array(
+      z.object({
+        name: z.string(),
+        type: z.string(),
+        nullable: z.boolean(),
+        default: z.string().nullable(),
+      })
+    ),
+  });
+
+  return {
+    describer: describeRoute({
+      tags: ['AntiPareto'],
+      description: 'Obtiene la lista de todas las tablas disponibles con su estructura de columnas.',
+      responses: {
+        200: {
+          description: 'Lista de tablas y su estructura obtenida exitosamente',
+          content: {
+            'application/json': {
+              schema: resolver(z.array(tableSchema)),
+            },
+          },
+        },
+      },
+    }),
+  };
+};
+

@@ -21,6 +21,38 @@ export const createAntiPareto = async (App: Hono) => {
   const tables =
     await sql`SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'`;
   const blacklist = BLACKLISTED_TABLES.map(t => t.toLowerCase());
+  
+  // Endpoint para listar todas las tablas y su estructura
+  const getTablesDoc = await antiParetoDoc.createGetTablesDoc();
+  App.get('/tables', getTablesDoc.describer, async c => {
+    const tablesInfo = [];
+    
+    for (const table of tables) {
+      const tableName = table.table_name;
+      if (blacklist.includes(tableName.toLowerCase())) continue;
+      
+      const columns = await sql`
+        SELECT column_name, data_type, is_nullable, column_default
+        FROM information_schema.columns
+        WHERE table_schema = 'public' 
+        AND table_name = ${tableName}
+        ORDER BY ordinal_position
+      `;
+      
+      tablesInfo.push({
+        name: tableName,
+        columns: columns.map((col: any) => ({
+          name: col.column_name,
+          type: col.data_type,
+          nullable: col.is_nullable === 'YES',
+          default: col.column_default
+        }))
+      });
+    }
+    
+    return c.json(tablesInfo);
+  });
+  
   for (const table of tables) {
     const tableName = table.table_name;
     if (blacklist.includes(tableName.toLowerCase())) continue;

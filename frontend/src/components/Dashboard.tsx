@@ -4,6 +4,12 @@ import {useAuth} from '../context/AuthContext';
 import {useUserData} from '../hooks/useMatchData';
 import {LoadingSpinner} from './LoadingSpinner';
 import {BackButton} from './BackButton';
+import {ChangePasswordModal} from './ChangePasswordModal';
+import {ChangeEmailModal} from './ChangeEmailModal';
+import {ConfirmModal} from './ConfirmModal';
+import {TableSelector} from './TableSelector';
+import {RowDetailModal} from './RowDetailModal';
+import {AddRowsModal} from './AddRowsModal';
 
 type TableInfo = {
   name: string;
@@ -31,45 +37,32 @@ export function Dashboard() {
   const [loadingTables, setLoadingTables] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
   const [selectedRow, setSelectedRow] = useState<Record<string, any> | null>(
     null
   );
   const [isModalClosing, setIsModalClosing] = useState(false);
-  const [editableFields, setEditableFields] = useState<Set<string>>(new Set());
-  const [editedValues, setEditedValues] = useState<Record<string, any>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleteModalClosing, setIsDeleteModalClosing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [nextSection, setNextSection] = useState<'profile' | 'database' | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isAddModalClosing, setIsAddModalClosing] = useState(false);
-  const [addMode, setAddMode] = useState<'web' | 'csv' | 'json'>('web');
-  const [newRows, setNewRows] = useState<Record<string, any>[]>([{}]);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [jsonInput, setJsonInput] = useState<string>('');
   const [isAdding, setIsAdding] = useState(false);
-  const [isModeTransitioning, setIsModeTransitioning] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
-  
-  // Estados para cambio de contraseña
+
+  // Password change states
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [isChangePasswordModalClosing, setIsChangePasswordModalClosing] = useState(false);
-  const [actualPassword, setActualPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangePasswordModalClosing, setIsChangePasswordModalClosing] =
+    useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  
-  // Estados para cambio de email
+
+  // Email change states
   const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
-  const [isChangeEmailModalClosing, setIsChangeEmailModalClosing] = useState(false);
-  const [emailPassword, setEmailPassword] = useState('');
-  const [newEmail, setNewEmail] = useState('');
+  const [isChangeEmailModalClosing, setIsChangeEmailModalClosing] =
+    useState(false);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
@@ -99,7 +92,7 @@ export function Dashboard() {
           method: 'GET',
         }
       );
-      if (!response.ok) throw new Error('Failed to fetch tables');
+      if (!response.ok) throw new Error('Error al cargar las tablas');
       const data: TableInfo[] = await response.json();
       setTables(data);
       if (data.length > 0 && data[0]) {
@@ -121,58 +114,35 @@ export function Dashboard() {
         {method: 'GET'}
       );
       if (!response.ok)
-        throw new Error(`Failed to fetch data for ${tableName}`);
+        throw new Error('Error al cargar los datos de la tabla');
       const data: TableData = await response.json();
-      // Sort by id if the id field exists
       const sortedData = data.sort((a, b) => {
-        if (a.id !== undefined && b.id !== undefined) {
-          return a.id - b.id;
-        }
+        if (a.id && b.id) return a.id - b.id;
         return 0;
       });
       setTableData(sortedData);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error loading table data';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Error loading table data';
       setError(errorMessage);
       console.error('Error fetching table data:', err);
-      // Don't break the UI, just show the error
     } finally {
       setLoadingData(false);
     }
   };
 
   const handleTableChange = (tableName: string) => {
-    if (tableName === selectedTable) {
-      setShowDropdown(false);
-      return;
-    }
-    
     setIsTransitioning(true);
     setTimeout(() => {
       setSelectedTable(tableName);
-      setShowDropdown(false);
       setSelectedRows(new Set());
       setIsTransitioning(false);
     }, 300);
   };
 
-  const toggleDropdown = () => {
-    if (showDropdown) {
-      setIsClosing(true);
-      setTimeout(() => {
-        setShowDropdown(false);
-        setIsClosing(false);
-      }, 200);
-    } else {
-      setShowDropdown(true);
-    }
-  };
-
   const handleRowClick = (row: Record<string, any>) => {
     setSelectedRow(row);
     setIsModalClosing(false);
-    setEditableFields(new Set());
-    setEditedValues({});
   };
 
   const handleCloseModal = () => {
@@ -180,59 +150,11 @@ export function Dashboard() {
     setTimeout(() => {
       setSelectedRow(null);
       setIsModalClosing(false);
-      setEditableFields(new Set());
-      setEditedValues({});
     }, 300);
   };
 
-  const toggleFieldEditable = (fieldName: string) => {
-    setEditableFields(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(fieldName)) {
-        newSet.delete(fieldName);
-        // Remove from edited values when undoing
-        setEditedValues(prevValues => {
-          const {[fieldName]: _, ...rest} = prevValues;
-          return rest;
-        });
-      } else {
-        newSet.add(fieldName);
-        // Initialize edited value with current value when enabling edit
-        if (!editedValues.hasOwnProperty(fieldName) && selectedRow) {
-          setEditedValues(prev => ({
-            ...prev,
-            [fieldName]: selectedRow[fieldName],
-          }));
-        }
-      }
-      return newSet;
-    });
-  };
-
-  const handleFieldChange = (fieldName: string, value: any) => {
-    setEditedValues(prev => ({
-      ...prev,
-      [fieldName]: value,
-    }));
-  };
-
-  const hasRealChanges = () => {
-    if (!selectedRow || Object.keys(editedValues).length === 0) return false;
-    
-    // Check if any edited value is different from the original
-    return Object.entries(editedValues).some(([key, value]) => {
-      return selectedRow[key] !== value;
-    });
-  };
-
-  const handleSaveChanges = async () => {
-    if (
-      !selectedRow ||
-      !selectedRow.id ||
-      Object.keys(editedValues).length === 0
-    ) {
-      return;
-    }
+  const handleSaveRowChanges = async (editedValues: Record<string, any>) => {
+    if (!selectedRow || !selectedRow.id) return;
 
     setIsSaving(true);
     setError(null);
@@ -260,13 +182,15 @@ export function Dashboard() {
         throw new Error(errorMessage);
       }
 
-      // Refresh table data and close modal
       await fetchTableData(selectedTable);
       handleCloseModal();
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al guardar los cambios';
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : 'Error desconocido al guardar los cambios';
       setError(errorMsg);
-      console.error('Error in handleSaveChanges:', err);
+      console.error('Error in handleSaveRowChanges:', err);
     } finally {
       setIsSaving(false);
     }
@@ -288,339 +212,10 @@ export function Dashboard() {
     if (selectedRows.size === tableData.length) {
       setSelectedRows(new Set());
     } else {
-      const allIds = tableData.map(row => row.id).filter(id => id !== undefined);
+      const allIds = tableData
+        .map(row => row.id)
+        .filter(id => id !== undefined);
       setSelectedRows(new Set(allIds));
-    }
-  };
-
-  const handleCloseAddModal = () => {
-    setIsAddModalClosing(true);
-    setTimeout(() => {
-      setShowAddModal(false);
-      setIsAddModalClosing(false);
-      setAddMode('web');
-      setNewRows([{}]);
-      setCsvFile(null);
-      setJsonInput('');
-      setIsModeTransitioning(false);
-      setModalError(null);
-    }, 300);
-  };
-
-  const handleModeChange = (mode: 'web' | 'csv' | 'json') => {
-    if (mode === addMode) return;
-    
-    setIsModeTransitioning(true);
-    setTimeout(() => {
-      setAddMode(mode);
-      setIsModeTransitioning(false);
-    }, 300);
-  };
-
-  const handleAddRow = () => {
-    setNewRows([...newRows, {}]);
-  };
-
-  const handleRemoveRow = (index: number) => {
-    if (newRows.length > 1) {
-      setNewRows(newRows.filter((_, i) => i !== index));
-    }
-  };
-
-  const handleRowFieldChange = (index: number, field: string, value: any) => {
-    const updated = [...newRows];
-    updated[index] = { ...updated[index], [field]: value };
-    setNewRows(updated);
-  };
-
-  const areRequiredFieldsFilled = () => {
-    if (!selectedTableInfo) return false;
-    
-    // Get required fields (not nullable and no default)
-    const requiredFields = selectedTableInfo.columns.filter(
-      col => !col.nullable && !col.default && col.name !== 'id'
-    );
-
-    // Check if all rows have all required fields filled
-    return newRows.every(row => {
-      return requiredFields.every(field => {
-        const value = row[field.name];
-        return value !== undefined && value !== null && value !== '';
-      });
-    });
-  };
-
-  const handleSubmitWeb = async () => {
-    setIsAdding(true);
-    setModalError(null);
-
-    try {
-      // Filter out empty string values from each row
-      const cleanedRows = newRows.map(row => {
-        const cleanedRow: Record<string, any> = {};
-        Object.entries(row).forEach(([key, value]) => {
-          if (value !== '' && value !== null && value !== undefined) {
-            cleanedRow[key] = value;
-          }
-        });
-        return cleanedRow;
-      });
-
-      const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/json`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(cleanedRows),
-        }
-      );
-
-      if (!response.ok) {
-        let errorMessage = 'Error al agregar las filas';
-        const statusCode = response.status;
-        
-        try {
-          const errorData = await response.json();
-          const backendMessage = errorData.message || errorData.error;
-          
-          // Provide context based on status code
-          if (statusCode === 400) {
-            if (backendMessage) {
-              // Check for common error patterns
-              if (backendMessage.includes('foreign key') || backendMessage.includes('FOREIGN KEY')) {
-                errorMessage = `❌ Error de referencia: Verificá que los IDs que ingresaste existan en las tablas relacionadas.\n\nDetalle: ${backendMessage}`;
-              } else if (backendMessage.includes('unique') || backendMessage.includes('UNIQUE')) {
-                errorMessage = `❌ Error de duplicado: Ya existe un registro con ese valor único.\n\nDetalle: ${backendMessage}`;
-              } else if (backendMessage.includes('not null') || backendMessage.includes('NOT NULL')) {
-                errorMessage = `❌ Campo obligatorio faltante: Completá todos los campos requeridos.\n\nDetalle: ${backendMessage}`;
-              } else if (backendMessage.includes('invalid') || backendMessage.includes('type')) {
-                errorMessage = `❌ Tipo de dato incorrecto: Verificá que los valores tengan el formato correcto.\n\nDetalle: ${backendMessage}`;
-              } else {
-                errorMessage = `❌ Bad Request (400): ${backendMessage}`;
-              }
-            } else {
-              errorMessage = `❌ Bad Request (400): Hay un problema con los datos que enviaste. Verificá los valores ingresados.`;
-            }
-          } else if (statusCode === 401) {
-            errorMessage = `🔒 No autorizado (401): Tu sesión expiró. Por favor, volvé a iniciar sesión.`;
-          } else if (statusCode === 403) {
-            errorMessage = `🚫 Prohibido (403): No tenés permisos para realizar esta acción.`;
-          } else if (statusCode === 404) {
-            errorMessage = `🔍 No encontrado (404): La tabla o recurso no existe.`;
-          } else if (statusCode >= 500) {
-            errorMessage = `⚠️ Error del servidor (${statusCode}): ${backendMessage || 'Algo salió mal en el servidor. Intentá de nuevo más tarde.'}`;
-          } else if (backendMessage) {
-            errorMessage = `❌ Error ${statusCode}: ${backendMessage}`;
-          } else {
-            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
-          }
-        } catch (parseError) {
-          // If we can't parse JSON, provide basic status info
-          if (statusCode === 400) {
-            errorMessage = `❌ Bad Request (400): Hay un problema con los datos. Verificá que todos los campos tengan el formato correcto.`;
-          } else if (statusCode === 401) {
-            errorMessage = `🔒 No autorizado (401): Tu sesión expiró.`;
-          } else if (statusCode === 403) {
-            errorMessage = `🚫 Prohibido (403): No tenés permisos.`;
-          } else if (statusCode === 404) {
-            errorMessage = `🔍 No encontrado (404): Recurso no existe.`;
-          } else if (statusCode >= 500) {
-            errorMessage = `⚠️ Error del servidor (${statusCode}): ${response.statusText}`;
-          } else {
-            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
-          }
-        }
-        throw new Error(errorMessage);
-      }
-
-      await fetchTableData(selectedTable);
-      handleCloseAddModal();
-    } catch (err) {
-      let errorMsg = 'Error desconocido al agregar las filas';
-      if (err instanceof Error) {
-        errorMsg = err.message;
-      } else if (typeof err === 'string') {
-        errorMsg = err;
-      }
-      setModalError(errorMsg);
-      console.error('Error in handleSubmitWeb:', err);
-      // Don't close modal on error so user can see the error and try again
-    } finally {
-      setIsAdding(false);
-    }
-  };
-
-  const handleSubmitCsv = async () => {
-    if (!csvFile) {
-      setModalError('Por favor selecciona un archivo CSV');
-      return;
-    }
-
-    setIsAdding(true);
-    setModalError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', csvFile);
-
-      const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/csv`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        let errorMessage = 'Error al procesar el archivo CSV';
-        const statusCode = response.status;
-        
-        try {
-          const errorData = await response.json();
-          const backendMessage = errorData.message || errorData.error;
-          
-          if (statusCode === 400) {
-            if (backendMessage) {
-              if (backendMessage.includes('foreign key') || backendMessage.includes('FOREIGN KEY')) {
-                errorMessage = `❌ Error de referencia: El CSV contiene IDs que no existen en las tablas relacionadas.\n\nDetalle: ${backendMessage}`;
-              } else if (backendMessage.includes('unique') || backendMessage.includes('UNIQUE')) {
-                errorMessage = `❌ Error de duplicado: El CSV contiene valores duplicados.\n\nDetalle: ${backendMessage}`;
-              } else if (backendMessage.includes('CSV') || backendMessage.includes('format')) {
-                errorMessage = `📄 Error de formato CSV: Verificá que el archivo tenga el formato correcto.\n\nDetalle: ${backendMessage}`;
-              } else {
-                errorMessage = `❌ Bad Request (400): ${backendMessage}`;
-              }
-            } else {
-              errorMessage = `❌ Bad Request (400): Hay un problema con el archivo CSV.`;
-            }
-          } else if (statusCode >= 500) {
-            errorMessage = `⚠️ Error del servidor (${statusCode}): ${backendMessage || response.statusText}`;
-          } else if (backendMessage) {
-            errorMessage = `❌ Error ${statusCode}: ${backendMessage}`;
-          } else {
-            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
-          }
-        } catch (parseError) {
-          if (statusCode === 400) {
-            errorMessage = `❌ Bad Request (400): Problema con el archivo CSV.`;
-          } else if (statusCode >= 500) {
-            errorMessage = `⚠️ Error del servidor (${statusCode}): ${response.statusText}`;
-          } else {
-            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
-          }
-        }
-        throw new Error(errorMessage);
-      }
-
-      await fetchTableData(selectedTable);
-      handleCloseAddModal();
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al procesar el archivo CSV';
-      setModalError(errorMsg);
-      console.error('Error in handleSubmitCsv:', err);
-      // Don't close modal on error so user can see the error and try again
-    } finally {
-      setIsAdding(false);
-    }
-  };
-
-  const handleSubmitJson = async () => {
-    if (!jsonInput.trim()) {
-      setModalError('Por favor ingresa un JSON válido');
-      return;
-    }
-
-    setIsAdding(true);
-    setModalError(null);
-
-    try {
-      // Parse and validate JSON
-      let parsedJson;
-      try {
-        parsedJson = JSON.parse(jsonInput);
-      } catch (parseError) {
-        throw new Error('El JSON ingresado no es válido. Verifica la sintaxis.');
-      }
-
-      // Ensure it's an array
-      const dataArray = Array.isArray(parsedJson) ? parsedJson : [parsedJson];
-
-      // Filter out empty string values from each object
-      const cleanedData = dataArray.map(item => {
-        const cleanedItem: Record<string, any> = {};
-        Object.entries(item).forEach(([key, value]) => {
-          if (value !== '' && value !== null && value !== undefined) {
-            cleanedItem[key] = value;
-          }
-        });
-        return cleanedItem;
-      });
-
-      const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/json`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(cleanedData),
-        }
-      );
-
-      if (!response.ok) {
-        let errorMessage = 'Error al insertar los datos';
-        const statusCode = response.status;
-        
-        try {
-          const errorData = await response.json();
-          const backendMessage = errorData.message || errorData.error;
-          
-          if (statusCode === 400) {
-            if (backendMessage) {
-              if (backendMessage.includes('foreign key') || backendMessage.includes('FOREIGN KEY')) {
-                errorMessage = `❌ Error de referencia: El JSON contiene IDs que no existen en las tablas relacionadas.\n\nDetalle: ${backendMessage}`;
-              } else if (backendMessage.includes('unique') || backendMessage.includes('UNIQUE')) {
-                errorMessage = `❌ Error de duplicado: El JSON contiene valores duplicados.\n\nDetalle: ${backendMessage}`;
-              } else if (backendMessage.includes('not null') || backendMessage.includes('NOT NULL')) {
-                errorMessage = `❌ Campo obligatorio faltante: Falta un campo requerido en el JSON.\n\nDetalle: ${backendMessage}`;
-              } else if (backendMessage.includes('invalid') || backendMessage.includes('type')) {
-                errorMessage = `❌ Tipo de dato incorrecto: El JSON tiene valores con formato incorrecto.\n\nDetalle: ${backendMessage}`;
-              } else {
-                errorMessage = `❌ Bad Request (400): ${backendMessage}`;
-              }
-            } else {
-              errorMessage = `❌ Bad Request (400): Hay un problema con el JSON enviado.`;
-            }
-          } else if (statusCode >= 500) {
-            errorMessage = `⚠️ Error del servidor (${statusCode}): ${backendMessage || response.statusText}`;
-          } else if (backendMessage) {
-            errorMessage = `❌ Error ${statusCode}: ${backendMessage}`;
-          } else {
-            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
-          }
-        } catch (parseError) {
-          if (statusCode === 400) {
-            errorMessage = `❌ Bad Request (400): Problema con los datos del JSON.`;
-          } else if (statusCode >= 500) {
-            errorMessage = `⚠️ Error del servidor (${statusCode}): ${response.statusText}`;
-          } else {
-            errorMessage = `❌ Error ${statusCode}: ${response.statusText}`;
-          }
-        }
-        throw new Error(errorMessage);
-      }
-
-      await fetchTableData(selectedTable);
-      handleCloseAddModal();
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al procesar el JSON';
-      setModalError(errorMsg);
-      console.error('Error in handleSubmitJson:', err);
-      // Don't close modal on error so user can see the error and try again
-    } finally {
-      setIsAdding(false);
     }
   };
 
@@ -637,7 +232,6 @@ export function Dashboard() {
     setError(null);
 
     try {
-      // Delete each selected row
       const deletePromises = Array.from(selectedRows).map(id =>
         authenticatedFetch(
           `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/${id}`,
@@ -646,28 +240,23 @@ export function Dashboard() {
       );
 
       const results = await Promise.all(deletePromises);
-      
-      // Check if all deletions were successful
+
       const failedDeletions = results.filter(r => !r.ok);
       if (failedDeletions.length > 0) {
-        // Try to get error message from first failed deletion
-        let errorMessage = `No se pudieron eliminar ${failedDeletions.length} registro(s)`;
-        if (failedDeletions[0]) {
-          try {
-            const errorData = await failedDeletions[0].json();
-            errorMessage = errorData.message || errorData.error || errorMessage;
-          } catch (parseError) {
-            // Keep default message
-          }
-        }
-        throw new Error(errorMessage);
+        throw new Error(
+          `Fallo la eliminación de ${failedDeletions.length} registro${
+            failedDeletions.length === 1 ? '' : 's'
+          }`
+        );
       }
 
-      // Refresh table data and clear selection
       await fetchTableData(selectedTable);
       setSelectedRows(new Set());
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al eliminar los registros';
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : 'Error desconocido al eliminar los registros';
       setError(errorMsg);
       console.error('Error in handleDeleteSelected:', err);
     } finally {
@@ -675,32 +264,10 @@ export function Dashboard() {
     }
   };
 
-  const handleCloseChangePasswordModal = () => {
-    setIsChangePasswordModalClosing(true);
-    setTimeout(() => {
-      setShowChangePasswordModal(false);
-      setIsChangePasswordModalClosing(false);
-      setActualPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setPasswordError(null);
-    }, 300);
-  };
-
-  const handleChangePassword = async () => {
-    if (!actualPassword || !newPassword || !confirmPassword) {
-      setPasswordError('Todos los campos son requeridos');
-      return;
-    }
-    if (newPassword.length < 8) {
-      setPasswordError('La nueva contraseña debe tener al menos 8 caracteres');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Las contraseñas no coinciden');
-      return;
-    }
-
+  const handleChangePassword = async (
+    actualPassword: string,
+    newPassword: string
+  ) => {
     setIsChangingPassword(true);
     setPasswordError(null);
 
@@ -712,7 +279,7 @@ export function Dashboard() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ actualPassword, newPassword }),
+          body: JSON.stringify({actualPassword, newPassword}),
         }
       );
 
@@ -720,16 +287,22 @@ export function Dashboard() {
         let errorMessage = 'Error al cambiar la contraseña';
         try {
           const errorData = await response.json();
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (parseError) {
-          errorMessage = `Error ${response.status}: ${response.statusText}`;
-        }
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {}
         throw new Error(errorMessage);
       }
 
-      handleCloseChangePasswordModal();
+      setIsChangePasswordModalClosing(true);
+      setTimeout(() => {
+        setShowChangePasswordModal(false);
+        setIsChangePasswordModalClosing(false);
+        setPasswordError(null);
+      }, 300);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al cambiar la contraseña';
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : 'Error desconocido al cambiar la contraseña';
       setPasswordError(errorMsg);
       console.error('Error in handleChangePassword:', err);
     } finally {
@@ -737,27 +310,7 @@ export function Dashboard() {
     }
   };
 
-  const handleCloseChangeEmailModal = () => {
-    setIsChangeEmailModalClosing(true);
-    setTimeout(() => {
-      setShowChangeEmailModal(false);
-      setIsChangeEmailModalClosing(false);
-      setEmailPassword('');
-      setNewEmail('');
-      setEmailError(null);
-    }, 300);
-  };
-
-  const handleChangeEmail = async () => {
-    if (!emailPassword || !newEmail) {
-      setEmailError('Todos los campos son requeridos');
-      return;
-    }
-    if (!newEmail.includes('@')) {
-      setEmailError('El email no es válido');
-      return;
-    }
-
+  const handleChangeEmail = async (password: string, newEmail: string) => {
     setIsChangingEmail(true);
     setEmailError(null);
 
@@ -769,7 +322,7 @@ export function Dashboard() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ password: emailPassword, newEmail }),
+          body: JSON.stringify({password, newEmail}),
         }
       );
 
@@ -777,21 +330,159 @@ export function Dashboard() {
         let errorMessage = 'Error al cambiar el email';
         try {
           const errorData = await response.json();
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (parseError) {
-          errorMessage = `Error ${response.status}: ${response.statusText}`;
-        }
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {}
         throw new Error(errorMessage);
       }
 
       await refetchUserInfo();
-      handleCloseChangeEmailModal();
+      setIsChangeEmailModalClosing(true);
+      setTimeout(() => {
+        setShowChangeEmailModal(false);
+        setIsChangeEmailModalClosing(false);
+        setEmailError(null);
+      }, 300);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al cambiar el email';
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : 'Error desconocido al cambiar el email';
       setEmailError(errorMsg);
       console.error('Error in handleChangeEmail:', err);
     } finally {
       setIsChangingEmail(false);
+    }
+  };
+
+  const handleSubmitWebRows = async (rows: Record<string, any>[]) => {
+    setIsAdding(true);
+    setModalError(null);
+
+    try {
+      const response = await authenticatedFetch(
+        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/json`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(rows),
+        }
+      );
+
+      if (!response.ok) {
+        let errorMessage = 'Error al agregar las filas';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {}
+        throw new Error(errorMessage);
+      }
+
+      await fetchTableData(selectedTable);
+      setIsAddModalClosing(true);
+      setTimeout(() => {
+        setShowAddModal(false);
+        setIsAddModalClosing(false);
+        setModalError(null);
+      }, 300);
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : 'Error desconocido al agregar las filas';
+      setModalError(errorMsg);
+      console.error('Error in handleSubmitWebRows:', err);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleSubmitJsonRows = async (jsonData: any[]) => {
+    setIsAdding(true);
+    setModalError(null);
+
+    try {
+      const response = await authenticatedFetch(
+        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/json`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(jsonData),
+        }
+      );
+
+      if (!response.ok) {
+        let errorMessage = 'Error al procesar el JSON';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {}
+        throw new Error(errorMessage);
+      }
+
+      await fetchTableData(selectedTable);
+      setIsAddModalClosing(true);
+      setTimeout(() => {
+        setShowAddModal(false);
+        setIsAddModalClosing(false);
+        setModalError(null);
+      }, 300);
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : 'Error desconocido al procesar el JSON';
+      setModalError(errorMsg);
+      console.error('Error in handleSubmitJsonRows:', err);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleSubmitCsvFile = async (file: File) => {
+    setIsAdding(true);
+    setModalError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await authenticatedFetch(
+        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/csv`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        let errorMessage = 'Error al procesar el archivo CSV';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {}
+        throw new Error(errorMessage);
+      }
+
+      await fetchTableData(selectedTable);
+      setIsAddModalClosing(true);
+      setTimeout(() => {
+        setShowAddModal(false);
+        setIsAddModalClosing(false);
+        setModalError(null);
+      }, 300);
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : 'Error desconocido al procesar el archivo CSV';
+      setModalError(errorMsg);
+      console.error('Error in handleSubmitCsvFile:', err);
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -813,7 +504,6 @@ export function Dashboard() {
       </div>
 
       <div className="max-w-[1600px] mx-auto relative z-10">
-        {/* Header with Back Button */}
         <div className="mb-8">
           <BackButton />
         </div>
@@ -825,17 +515,14 @@ export function Dashboard() {
             <div className="w-full md:w-64 md:shrink-0 bg-white/5 border-b md:border-b-0 md:border-r border-white/10 p-6">
               <h2 className="text-xl font-bold text-white mb-6">Dashboard</h2>
 
-              {/* User Options */}
               <div className="space-y-2">
                 <button
                   onClick={() => {
                     if (activeSection !== 'profile') {
                       setIsTransitioning(true);
-                      setNextSection('profile');
                       setTimeout(() => {
                         setActiveSection('profile');
                         setIsTransitioning(false);
-                        setNextSection(null);
                       }, 300);
                     }
                   }}
@@ -862,7 +549,6 @@ export function Dashboard() {
                 </button>
               </div>
 
-              {/* Admin Options */}
               {userInfo?.admin && (
                 <>
                   <div className="my-6 border-t border-white/10"></div>
@@ -874,11 +560,9 @@ export function Dashboard() {
                       onClick={() => {
                         if (activeSection !== 'database') {
                           setIsTransitioning(true);
-                          setNextSection('database');
                           setTimeout(() => {
                             setActiveSection('database');
                             setIsTransitioning(false);
-                            setNextSection(null);
                           }, 300);
                         }
                       }}
@@ -910,12 +594,14 @@ export function Dashboard() {
 
             {/* Main Content Area */}
             <div className="flex-1 p-6 md:p-8 overflow-y-auto">
-              <div className={`transition-opacity duration-300 ${
-                isTransitioning ? 'opacity-0' : 'opacity-100'
-              }`}>
+              <div
+                className={`transition-opacity duration-300 ${
+                  isTransitioning ? 'opacity-0' : 'opacity-100'
+                }`}
+              >
                 {activeSection === 'profile' && (
-                  <ProfileSection 
-                    userInfo={userInfo} 
+                  <ProfileSection
+                    userInfo={userInfo}
                     userError={userError}
                     onChangePassword={() => setShowChangePasswordModal(true)}
                     onChangeEmail={() => setShowChangeEmailModal(true)}
@@ -924,870 +610,113 @@ export function Dashboard() {
 
                 {activeSection === 'database' && userInfo?.admin && (
                   <DatabaseSection
-                  tables={tables}
-                  selectedTable={selectedTable}
-                  selectedTableInfo={selectedTableInfo}
-                  tableData={tableData}
-                  loadingTables={loadingTables}
-                  loadingData={loadingData}
-                  error={error}
-                  showDropdown={showDropdown}
-                  isClosing={isClosing}
-                  onTableChange={handleTableChange}
-                  onToggleDropdown={toggleDropdown}
-                  onRowClick={handleRowClick}
-                  selectedRows={selectedRows}
-                  onToggleRowSelection={toggleRowSelection}
-                  onToggleSelectAll={toggleSelectAll}
-                  onDeleteSelected={() => setShowDeleteConfirm(true)}
-                  onShowAddModal={() => setShowAddModal(true)}
-                  isDeleting={isDeleting}
-                  isTransitioning={isTransitioning}
-                />
-              )}
+                    tables={tables}
+                    selectedTable={selectedTable}
+                    selectedTableInfo={selectedTableInfo}
+                    tableData={tableData}
+                    loadingTables={loadingTables}
+                    loadingData={loadingData}
+                    error={error}
+                    onTableChange={handleTableChange}
+                    onRowClick={handleRowClick}
+                    selectedRows={selectedRows}
+                    onToggleRowSelection={toggleRowSelection}
+                    onToggleSelectAll={toggleSelectAll}
+                    onDeleteSelected={() => setShowDeleteConfirm(true)}
+                    onShowAddModal={() => setShowAddModal(true)}
+                    isDeleting={isDeleting}
+                    isTransitioning={isTransitioning}
+                  />
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div
-          className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
-            isDeleteModalClosing ? 'animate-fade-out' : 'animate-fade-in'
-          }`}
-          onClick={() => {
-            setIsDeleteModalClosing(true);
-            setTimeout(() => {
-              setShowDeleteConfirm(false);
-              setIsDeleteModalClosing(false);
-            }, 300);
-          }}
-        >
-          <div
-            className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-md w-full ${
-              isDeleteModalClosing ? 'animate-scale-out' : 'animate-scale-in'
-            }`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start gap-4 mb-6">
-              <div className="shrink-0 w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-red-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-white mb-2">
-                  Confirmar eliminación
-                </h3>
-                <p className="text-slate-300 text-sm">
-                  ¿Estás seguro de que querés fletar {selectedRows.size} {selectedRows.size === 1 ? 'registro' : 'registros'}? <b>Esta acción no se puede deshacer.</b>
-                </p>
-              </div>
-            </div>
+      {/* Modals */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        isClosing={isDeleteModalClosing}
+        onClose={() => {
+          setIsDeleteModalClosing(true);
+          setTimeout(() => {
+            setShowDeleteConfirm(false);
+            setIsDeleteModalClosing(false);
+          }, 300);
+        }}
+        onConfirm={handleDeleteSelected}
+        title="Confirmar eliminación"
+        message={`¿Estás seguro de que querés fletar ${selectedRows.size} ${
+          selectedRows.size === 1 ? 'registro' : 'registros'
+        }? <b>Esta acción no se puede deshacer.</b>`}
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+      />
 
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setIsDeleteModalClosing(true);
-                  setTimeout(() => {
-                    setShowDeleteConfirm(false);
-                    setIsDeleteModalClosing(false);
-                  }, 300);
-                }}
-                className="px-4 py-2 text-sm font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDeleteSelected}
-                disabled={isDeleting}
-                className={`px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-colors duration-300 ${
-                  isDeleting
-                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                    : 'text-white bg-linear-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 hover:shadow-xl active:scale-99'
-                }`}
-              >
-                {isDeleting ? (
-                  <span className="flex items-center gap-2">
-                    <svg
-                      className="animate-spin h-4 w-4 shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Eliminando...
-                  </span>
-                ) : (
-                  'Eliminar'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddRowsModal
+        isOpen={showAddModal}
+        isClosing={isAddModalClosing}
+        selectedTable={selectedTable}
+        selectedTableInfo={selectedTableInfo}
+        onClose={() => {
+          setIsAddModalClosing(true);
+          setTimeout(() => {
+            setShowAddModal(false);
+            setIsAddModalClosing(false);
+            setModalError(null);
+          }, 300);
+        }}
+        onSubmitWeb={handleSubmitWebRows}
+        onSubmitJson={handleSubmitJsonRows}
+        onSubmitCsv={handleSubmitCsvFile}
+        isLoading={isAdding}
+        error={modalError}
+      />
 
-      {/* Add Rows Modal */}
-      {showAddModal && (
-        <div
-          className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
-            isAddModalClosing ? 'animate-fade-out' : 'animate-fade-in'
-          }`}
-          onClick={handleCloseAddModal}
-        >
-          <div
-            className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-4xl w-full max-h-[90vh] flex flex-col ${
-              isAddModalClosing ? 'animate-scale-out' : 'animate-scale-in'
-            }`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex justify-between items-start mb-6 shrink-0">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  Insertar
-                </h2>
-                <p className="text-slate-400 text-sm">
-                  Tabla: <span className="font-semibold text-blue-400">{selectedTable}</span>
-                </p>
-              </div>
-              <button
-                onClick={handleCloseAddModal}
-                className="text-slate-400 hover:text-white text-2xl transition-colors duration-200"
-              >
-                ×
-              </button>
-            </div>
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        isClosing={isChangePasswordModalClosing}
+        onClose={() => {
+          setIsChangePasswordModalClosing(true);
+          setTimeout(() => {
+            setShowChangePasswordModal(false);
+            setIsChangePasswordModalClosing(false);
+            setPasswordError(null);
+          }, 300);
+        }}
+        onSubmit={handleChangePassword}
+        isLoading={isChangingPassword}
+        error={passwordError}
+      />
 
-            {/* Mode Tabs */}
-            <div className="grid grid-cols-3 gap-3 mb-6 shrink-0">
-              <button
-                onClick={() => handleModeChange('web')}
-                className={`px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-                  addMode === 'web'
-                    ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30 shadow-lg'
-                    : 'bg-slate-700/50 text-slate-400 border border-slate-600/30 hover:bg-slate-700 hover:border-slate-500/50'
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Web
-              </button>
-              <button
-                onClick={() => handleModeChange('json')}
-                className={`px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-                  addMode === 'json'
-                    ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30 shadow-lg'
-                    : 'bg-slate-700/50 text-slate-400 border border-slate-600/30 hover:bg-slate-700 hover:border-slate-500/50'
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-                JSON
-              </button>
-              <button
-                onClick={() => handleModeChange('csv')}
-                className={`px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-                  addMode === 'csv'
-                    ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30 shadow-lg'
-                    : 'bg-slate-700/50 text-slate-400 border border-slate-600/30 hover:bg-slate-700 hover:border-slate-500/50'
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-                CSV
-              </button>
-            </div>
+      <ChangeEmailModal
+        isOpen={showChangeEmailModal}
+        isClosing={isChangeEmailModalClosing}
+        onClose={() => {
+          setIsChangeEmailModalClosing(true);
+          setTimeout(() => {
+            setShowChangeEmailModal(false);
+            setIsChangeEmailModalClosing(false);
+            setEmailError(null);
+          }, 300);
+        }}
+        onSubmit={handleChangeEmail}
+        isLoading={isChangingEmail}
+        error={emailError}
+      />
 
-            {/* Modal Content */}
-            <div className={`overflow-y-auto pr-2 flex-1 min-h-0 transition-opacity duration-300 ${
-              isModeTransitioning ? 'opacity-0' : 'opacity-100'
-            }`}>
-              {addMode === 'web' ? (
-                <div className="space-y-4">
-                  {newRows.map((row, rowIndex) => (
-                    <div key={rowIndex} className="bg-slate-900/50 border border-white/20 rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-white font-semibold">Fila {rowIndex + 1}</h3>
-                        {newRows.length > 1 && (
-                          <button
-                            onClick={() => handleRemoveRow(rowIndex)}
-                            className="text-red-400 hover:text-red-300 text-sm transition-colors"
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {selectedTableInfo?.columns.map(col => {
-                          const isRequired = !col.nullable && !col.default && col.name !== 'id';
-                          const isTimestamp = col.type.toLowerCase().includes('timestamp') || 
-                                            col.name.toLowerCase().includes('_at') || 
-                                            col.name.toLowerCase().includes('date');
-                          const isNumber = col.type.toLowerCase().includes('int') || 
-                                         col.type.toLowerCase().includes('float') || 
-                                         col.type.toLowerCase().includes('decimal') || 
-                                         col.type.toLowerCase().includes('numeric');
-                          const isBoolean = col.type.toLowerCase().includes('bool');
-                          
-                          return (
-                            <div key={col.name}>
-                              <label className="block text-sm text-slate-300 font-semibold mb-1">
-                                {col.name}
-                                {isRequired && <span className="text-red-400 ml-1">*</span>}
-                                {!isRequired && col.default && <span className=""></span>}
-                              </label>
-                              {isBoolean ? (
-                                <select
-                                  value={row[col.name] !== undefined ? String(row[col.name]) : ''}
-                                  onChange={(e) => handleRowFieldChange(rowIndex, col.name, e.target.value === 'true')}
-                                  className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
-                                >
-                                  <option value="">Seleccionar...</option>
-                                  <option value="true">true</option>
-                                  <option value="false">false</option>
-                                </select>
-                              ) : isTimestamp ? (
-                                <input
-                                  type="datetime-local"
-                                  value={row[col.name] ? new Date(row[col.name]).toISOString().slice(0, 16) : ''}
-                                  onChange={(e) => handleRowFieldChange(rowIndex, col.name, e.target.value ? new Date(e.target.value).toISOString() : '')}
-                                  className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
-                                />
-                              ) : isNumber ? (
-                                <input
-                                  type="number"
-                                  step="any"
-                                  value={row[col.name] !== undefined ? row[col.name] : ''}
-                                  onChange={(e) => handleRowFieldChange(rowIndex, col.name, e.target.value ? parseFloat(e.target.value) : '')}
-                                  placeholder={col.default ? `Default: ${col.default}` : ''}
-                                  className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
-                                />
-                              ) : (
-                                <input
-                                  type="text"
-                                  value={row[col.name] || ''}
-                                  onChange={(e) => handleRowFieldChange(rowIndex, col.name, e.target.value)}
-                                  placeholder={col.default ? `Default: ${col.default}` : ''}
-                                  className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    onClick={handleAddRow}
-                    className="w-full px-4 py-2 text-sm font-bold text-blue-300 bg-blue-500/10 border border-blue-400/30 rounded-lg hover:bg-blue-500/20 transition-all duration-200"
-                  >
-                    + Agregar otra fila
-                  </button>
-                </div>
-              ) : addMode === 'json' ? (
-                <div className="space-y-4">
-                  <div className="bg-slate-900/50 border border-white/20 rounded-lg p-4">
-                    <label className="block text-sm text-slate-300 font-semibold mb-2">
-                      Pegá tu JSON acá:
-                    </label>
-                    <textarea
-                      value={jsonInput}
-                      onChange={(e) => setJsonInput(e.target.value)}
-                      placeholder={selectedTableInfo ? `[${JSON.stringify(
-                        Object.fromEntries(
-                          selectedTableInfo.columns
-                            .filter(col => col.name !== 'id')
-                            .slice(0, 3)
-                            .map(col => [col.name, col.type.includes('varchar') ? 'ejemplo' : col.type.includes('int') ? 1 : col.type.includes('bool') ? true : 'valor'])
-                        ),
-                        null,
-                        2
-                      )}]` : `[{"campo1": "valor1"}]`}
-                      className="w-full h-64 px-3 py-2 bg-slate-800 text-white placeholder:text-slate-600 border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200 font-mono text-sm resize-none"
-                    />
-                  </div>
-                  <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4">
-                    <p className="text-blue-300 text-sm">
-                      <strong>Formato esperado:</strong> un objeto JSON o un array de objetos. Los campos vacíos serán omitidos automáticamente.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center">
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                      id="csv-upload"
-                    />
-                    <label
-                      htmlFor="csv-upload"
-                      className="cursor-pointer inline-flex flex-col items-center"
-                    >
-                      <svg
-                        className="w-12 h-12 text-slate-400 mb-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                        />
-                      </svg>
-                      <span className="text-slate-300 font-semibold mb-1">
-                        {csvFile ? csvFile.name : 'Hacé clic acá para seleccionar un archivo CSV'}
-                      </span>
-                      <span className="text-slate-500 text-sm">
-                        o arrastra y soltá el archivo acá
-                      </span>
-                    </label>
-                  </div>
-                  <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4">
-                    <p className="text-blue-300 text-sm">
-                      <strong>Formato esperado:</strong> el archivo CSV debe tener una fila de encabezados con los nombres de las columnas, seguida de las filas de datos.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {modalError && (
-                <div className="mt-4 text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-sm">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="flex-1 whitespace-pre-wrap wrap-break-word">
-                      {modalError}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="mt-6 pt-4 border-t border-white/10 shrink-0 flex gap-3 justify-end">
-              <button
-                onClick={handleCloseAddModal}
-                disabled={isAdding}
-                className="px-4 py-2 text-sm font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={addMode === 'web' ? handleSubmitWeb : addMode === 'json' ? handleSubmitJson : handleSubmitCsv}
-                disabled={isAdding || (addMode === 'csv' && !csvFile) || (addMode === 'json' && !jsonInput.trim()) || (addMode === 'web' && !areRequiredFieldsFilled())}
-                className={`px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-all duration-300 ${
-                  isAdding || (addMode === 'csv' && !csvFile) || (addMode === 'json' && !jsonInput.trim()) || (addMode === 'web' && !areRequiredFieldsFilled())
-                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50'
-                    : 'text-white bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:shadow-xl active:scale-99'
-                }`}
-              >
-                {isAdding ? (
-                  <span className="flex items-center gap-2">
-                    <svg
-                      className="animate-spin h-4 w-4 shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Agregando...
-                  </span>
-                ) : (
-                  'Insertar'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Change Password Modal */}
-      {showChangePasswordModal && (
-        <div
-          className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
-            isChangePasswordModalClosing ? 'animate-fade-out' : 'animate-fade-in'
-          }`}
-          onClick={handleCloseChangePasswordModal}
-        >
-          <div
-            className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-md w-full ${
-              isChangePasswordModalClosing ? 'animate-scale-out' : 'animate-scale-in'
-            }`}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  Cambiar contraseña
-                </h3>
-                <p className="text-slate-400 text-sm">
-                  Ingresá tu contraseña actual y la nueva
-                </p>
-              </div>
-              <button
-                onClick={handleCloseChangePasswordModal}
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Contraseña actual
-                </label>
-                <input
-                  type="password"
-                  value={actualPassword}
-                  onChange={e => setActualPassword(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="Ingresa tu contraseña actual"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Nueva contraseña
-                </label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="Mínimo 8 caracteres"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Confirmá la nueva contraseña
-                </label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="Confirma tu nueva contraseña"
-                />
-              </div>
-
-              {passwordError && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                  <p className="text-red-400 text-sm">{passwordError}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 flex gap-3 justify-end">
-              <button
-                onClick={handleCloseChangePasswordModal}
-                disabled={isChangingPassword}
-                className="px-4 py-2 text-sm font-bold text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleChangePassword}
-                disabled={isChangingPassword}
-                className="px-6 py-2 text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-lg font-bold shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isChangingPassword ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Cambiando...
-                  </span>
-                ) : (
-                  'Cambiar contraseña'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Change Email Modal */}
-      {showChangeEmailModal && (
-        <div
-          className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
-            isChangeEmailModalClosing ? 'animate-fade-out' : 'animate-fade-in'
-          }`}
-          onClick={handleCloseChangeEmailModal}
-        >
-          <div
-            className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-md w-full ${
-              isChangeEmailModalClosing ? 'animate-scale-out' : 'animate-scale-in'
-            }`}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  Cambiar email
-                </h3>
-                <p className="text-slate-400 text-sm">
-                  Ingresa el nuevo email y tu contraseña actual
-                </p>
-              </div>
-              <button
-                onClick={handleCloseChangeEmailModal}
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Nuevo email
-                </label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={e => setNewEmail(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500 transition-colors"
-                  placeholder="vos@dominio.tld"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Contraseña actual
-                </label>
-                <input
-                  type="password"
-                  value={emailPassword}
-                  onChange={e => setEmailPassword(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500 transition-colors"
-                  placeholder="Ingresa tu contraseña"
-                />
-              </div>
-
-              {emailError && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                  <p className="text-red-400 text-sm">{emailError}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 flex gap-3 justify-end">
-              <button
-                onClick={handleCloseChangeEmailModal}
-                disabled={isChangingEmail}
-                className="px-4 py-2 text-sm font-bold text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleChangeEmail}
-                disabled={isChangingEmail}
-                className="px-6 py-2 text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-lg font-bold shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isChangingEmail ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Cambiando...
-                  </span>
-                ) : (
-                  'Cambiar email'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Row Detail Modal */}
-      {selectedRow && (
-        <div
-          className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
-            isModalClosing ? 'animate-fade-out' : 'animate-fade-in'
-          }`}
-          onClick={handleCloseModal}
-        >
-          <div
-            className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-2xl w-full max-h-[80vh] flex flex-col ${
-              isModalClosing ? 'animate-scale-out' : 'animate-scale-in'
-            }`}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex justify-between items-start mb-6 shrink-0">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  Detalles del registro
-                </h2>
-                <p className="text-slate-400 text-sm">
-                  Tabla:{' '}
-                  <span className="font-semibold text-blue-400">
-                    {selectedTable}
-                  </span>
-                </p>
-              </div>
-              <button
-                onClick={handleCloseModal}
-                className="text-slate-400 hover:text-white text-2xl transition-colors duration-200"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="overflow-y-auto pr-2 flex-1 min-h-0">
-              <div className="space-y-3">
-                {Object.entries(selectedRow).map(([key, value]) => {
-                  const isEditable = editableFields.has(key);
-                  const currentValue =
-                    isEditable && editedValues.hasOwnProperty(key)
-                      ? editedValues[key]
-                      : value;
-                  const isIdField = key === 'id';
-
-                  return (
-                    <div
-                      key={key}
-                      className="bg-slate-900/50 border border-white/20 rounded-lg p-4 hover:bg-slate-900/70 transition-all duration-200"
-                    >
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="block text-sm text-slate-300 font-semibold wrap-break-word">
-                            {key}
-                          </label>
-                          {!isIdField && (
-                            <button
-                              onClick={() => toggleFieldEditable(key)}
-                              className={`px-2 py-1 rounded text-xs font-semibold transition-all duration-200 whitespace-nowrap shrink-0 active:scale-95 ${
-                                isEditable
-                                  ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-400/30 hover:bg-yellow-500/30'
-                                  : 'bg-slate-700/50 text-slate-400 border border-slate-600/30 hover:bg-slate-700'
-                              }`}
-                            >
-                              {isEditable ? (
-                                <span className="flex items-center gap-1">
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                                    />
-                                  </svg>
-                                  Deshacer
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-1">
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                    />
-                                  </svg>
-                                  Editar
-                                </span>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                        <div className="w-full min-w-0">
-                          {isEditable ? (
-                            typeof value === 'boolean' ? (
-                              <select
-                                value={String(currentValue)}
-                                onChange={e =>
-                                  handleFieldChange(
-                                    key,
-                                    e.target.value === 'true'
-                                  )
-                                }
-                                className="w-full px-3 py-2 bg-slate-800 text-white border border-blue-400/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
-                              >
-                                <option value="true">true</option>
-                                <option value="false">false</option>
-                              </select>
-                            ) : typeof value === 'number' ? (
-                              <input
-                                type="number"
-                                value={currentValue}
-                                onChange={e =>
-                                  handleFieldChange(
-                                    key,
-                                    parseFloat(e.target.value)
-                                  )
-                                }
-                                className="w-full px-3 py-2 bg-slate-800 text-white border border-blue-400/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
-                              />
-                            ) : typeof value === 'string' && (key.toLowerCase().includes('date') || key.toLowerCase().includes('_at') || key.toLowerCase().includes('timestamp')) ? (
-                              <input
-                                type="datetime-local"
-                                value={currentValue ? new Date(currentValue).toISOString().slice(0, 16) : ''}
-                                onChange={e =>
-                                  handleFieldChange(key, e.target.value ? new Date(e.target.value).toISOString() : '')
-                                }
-                                className="w-full px-3 py-2 bg-slate-800 text-white border border-blue-400/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
-                              />
-                            ) : (
-                              <input
-                                type="text"
-                                value={currentValue || ''}
-                                onChange={e =>
-                                  handleFieldChange(key, e.target.value)
-                                }
-                                className="w-full px-3 py-2 bg-slate-800 text-white border border-blue-400/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
-                              />
-                            )
-                          ) : value === null ? (
-                            <span className="text-slate-500 italic text-sm">
-                              null
-                            </span>
-                          ) : typeof value === 'boolean' ? (
-                            <span
-                              className={`font-semibold ${
-                                value ? 'text-green-400' : 'text-red-400'
-                              }`}
-                            >
-                              {value.toString()}
-                            </span>
-                          ) : typeof value === 'object' ? (
-                            <pre className="text-purple-300 font-mono text-xs bg-black/30 p-3 rounded border border-white/10 overflow-x-auto whitespace-pre-wrap wrap-break-word">
-                              {JSON.stringify(value, null, 2)}
-                            </pre>
-                          ) : typeof value === 'string' &&
-                            (value.startsWith('http://') ||
-                              value.startsWith('https://')) ? (
-                            <a
-                              href={value}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 underline break-all transition-colors duration-200 text-sm block"
-                            >
-                              {String(value)}
-                            </a>
-                          ) : (
-                            <span className="text-white wrap-break-word text-sm block">
-                              {String(value)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Save Button */}
-            {editableFields.size > 0 && (
-              <div className="mt-6 pt-4 border-t border-white/10 shrink-0">
-                <button
-                  onClick={handleSaveChanges}
-                  disabled={isSaving || !hasRealChanges()}
-                  className={`w-full px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-all duration-300 whitespace-nowrap ${
-                    isSaving || !hasRealChanges()
-                      ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50 scale-95'
-                      : 'text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 hover:shadow-xl active:scale-99 opacity-100 scale-100'
-                  }`}
-                >
-                  {isSaving ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg
-                        className="animate-spin h-5 w-5 shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Guardando...
-                    </span>
-                  ) : (
-                    'Guardar cambios'
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <RowDetailModal
+        isOpen={!!selectedRow}
+        isClosing={isModalClosing}
+        selectedRow={selectedRow}
+        selectedTable={selectedTable}
+        onClose={handleCloseModal}
+        onSave={handleSaveRowChanges}
+        isSaving={isSaving}
+      />
     </div>
   );
 }
@@ -1799,7 +728,12 @@ type ProfileSectionProps = {
   onChangeEmail: () => void;
 };
 
-function ProfileSection({userInfo, userError, onChangePassword, onChangeEmail}: ProfileSectionProps) {
+function ProfileSection({
+  userInfo,
+  userError,
+  onChangePassword,
+  onChangeEmail,
+}: ProfileSectionProps) {
   if (userError) {
     return (
       <div className="text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4">
@@ -1912,8 +846,18 @@ function ProfileSection({userInfo, userError, onChangePassword, onChangeEmail}: 
           onClick={onChangePassword}
           className="flex items-center justify-center gap-3 text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-lg p-4 shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 group"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+            />
           </svg>
           <span className="font-semibold">Cambiar contraseña</span>
         </button>
@@ -1922,8 +866,18 @@ function ProfileSection({userInfo, userError, onChangePassword, onChangeEmail}: 
           onClick={onChangeEmail}
           className="flex items-center justify-center gap-3 text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-lg p-4 shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 group"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
           </svg>
           <span className="font-semibold">Cambiar email</span>
         </button>
@@ -2008,10 +962,7 @@ type DatabaseSectionProps = {
   loadingTables: boolean;
   loadingData: boolean;
   error: string | null;
-  showDropdown: boolean;
-  isClosing: boolean;
   onTableChange: (tableName: string) => void;
-  onToggleDropdown: () => void;
   onRowClick: (row: Record<string, any>) => void;
   selectedRows: Set<number>;
   onToggleRowSelection: (id: number) => void;
@@ -2030,10 +981,7 @@ function DatabaseSection({
   loadingTables,
   loadingData,
   error,
-  showDropdown,
-  isClosing,
   onTableChange,
-  onToggleDropdown,
   onRowClick,
   selectedRows,
   onToggleRowSelection,
@@ -2058,9 +1006,11 @@ function DatabaseSection({
   }
 
   return (
-    <div className={`space-y-6 transition-opacity duration-300 ${
-      isTransitioning ? 'opacity-0' : 'opacity-100'
-    }`}>
+    <div
+      className={`space-y-6 transition-opacity duration-300 ${
+        isTransitioning ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
       <div className="flex items-center justify-between">
         <h3 className="text-2xl font-bold text-white">Base de datos</h3>
 
@@ -2115,7 +1065,9 @@ function DatabaseSection({
                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                   />
                 </svg>
-                {selectedRows.size > 0 ? `Eliminar (${selectedRows.size})` : 'Eliminar'}
+                {selectedRows.size > 0
+                  ? `Eliminar (${selectedRows.size})`
+                  : 'Eliminar'}
               </span>
             )}
           </button>
@@ -2143,56 +1095,12 @@ function DatabaseSection({
             </span>
           </button>
 
-          {/* Table Dropdown Selector */}
-          <div className="relative z-50">
-            <button
-              onClick={onToggleDropdown}
-              className="px-4 py-2 text-sm font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 flex items-center gap-2 min-w-[200px] justify-between"
-            >
-            <span className="truncate">
-              {selectedTable || 'Seleccionar tabla'}
-            </span>
-            <svg
-              className={`w-4 h-4 transition-transform duration-300 ${
-                showDropdown && !isClosing ? 'rotate-180' : ''
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
-
-          {showDropdown && (
-            <div
-              className={`absolute right-0 mt-2 w-64 bg-slate-800 border border-white/20 rounded-lg shadow-2xl overflow-hidden backdrop-blur-lg ${
-                isClosing ? 'animate-slideUp' : 'animate-slideDown'
-              }`}
-            >
-              <div className="max-h-80 overflow-y-auto">
-                {tables.map(table => (
-                  <button
-                    key={table.name}
-                    onClick={() => onTableChange(table.name)}
-                    className={`w-full text-left px-4 py-3 text-sm transition-colors duration-200 ${
-                      selectedTable === table.name
-                        ? 'bg-blue-500/20 text-blue-300'
-                        : 'text-slate-300 hover:bg-white/5'
-                    }`}
-                  >
-                    {table.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          </div>
+          {/* Table Selector */}
+          <TableSelector
+            tables={tables}
+            selectedTable={selectedTable}
+            onTableChange={onTableChange}
+          />
         </div>
       </div>
 
@@ -2249,76 +1157,68 @@ function DatabaseSection({
             <table className="w-full text-sm">
               <thead className="bg-white/5">
                 <tr>
-                  <th className="px-4 py-3 text-left w-12">
+                  <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedRows.size === tableData.length && tableData.length > 0}
+                      checked={
+                        selectedRows.size === tableData.length &&
+                        tableData.length > 0
+                      }
                       onChange={onToggleSelectAll}
-                      className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                      className="rounded border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
                     />
                   </th>
-                  {tableData[0] &&
-                    Object.keys(tableData[0]).map(key => (
-                      <th
-                        key={key}
-                        className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider"
-                      >
-                        {key}
-                      </th>
-                    ))}
+                  {selectedTableInfo?.columns.map(col => (
+                    <th
+                      key={col.name}
+                      className="px-4 py-3 text-left text-slate-300 font-semibold"
+                    >
+                      {col.name}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
-                {tableData.map((row, idx) => (
+              <tbody>
+                {tableData.map((row, index) => (
                   <tr
-                    key={idx}
-                    className="hover:bg-white/10 transition-colors duration-150"
+                    key={row.id || index}
+                    className="border-t border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                    onClick={e => {
+                      if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                        onRowClick(row);
+                      }
+                    }}
                   >
-                    <td className="px-4 py-3">
+                    <td
+                      className="px-4 py-3"
+                      onClick={e => e.stopPropagation()}
+                    >
                       <input
                         type="checkbox"
                         checked={selectedRows.has(row.id)}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          onToggleRowSelection(row.id);
-                        }}
-                        className="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                        onChange={() => onToggleRowSelection(row.id)}
+                        className="rounded border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
                       />
                     </td>
-                    {Object.entries(row).map(([key, value], cellIdx) => (
-                      <td 
-                        key={cellIdx} 
-                        className="px-4 py-3 text-slate-300 cursor-pointer"
-                        onClick={() => onRowClick(row)}
-                      >
-                        {value === null ? (
+                    {selectedTableInfo?.columns.map(col => (
+                      <td key={col.name} className="px-4 py-3 text-slate-300">
+                        {row[col.name] === null ? (
                           <span className="text-slate-500 italic">null</span>
-                        ) : typeof value === 'boolean' ? (
+                        ) : typeof row[col.name] === 'boolean' ? (
                           <span
-                            className={
-                              value ? 'text-green-400' : 'text-red-400'
-                            }
+                            className={`font-semibold ${
+                              row[col.name] ? 'text-green-400' : 'text-red-400'
+                            }`}
                           >
-                            {value.toString()}
+                            {row[col.name].toString()}
                           </span>
-                        ) : typeof value === 'object' ? (
+                        ) : typeof row[col.name] === 'object' ? (
                           <span className="text-purple-300 font-mono text-xs">
-                            {JSON.stringify(value)}
+                            {JSON.stringify(row[col.name])}
                           </span>
-                        ) : typeof value === 'string' &&
-                          (value.startsWith('http://') ||
-                            value.startsWith('https://')) ? (
-                          <a
-                            href={value}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 underline truncate max-w-xs inline-block transition-colors duration-200"
-                          >
-                            {String(value)}
-                          </a>
                         ) : (
-                          <span className="truncate max-w-xs inline-block">
-                            {String(value)}
+                          <span className="truncate max-w-xs block">
+                            {String(row[col.name])}
                           </span>
                         )}
                       </td>

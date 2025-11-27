@@ -29,6 +29,8 @@ export const registerHandler = async (c: Context) => {
 
     if (!username || !email || !password)
       return badRequest(c, 'Username, email and password are required');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return badRequest(c, 'Invalid email format');
     if (password.length < 8)
       return badRequest(c, 'Password must be at least 8 characters');
     if ((await findUserByUsername(username)) || (await findUserByEmail(email)))
@@ -61,7 +63,7 @@ export const loginHandler = async (c: Context) => {
       return badRequest(c, 'Username and password are required');
     const user = await findUserByUsername(username);
     if (!user || !(await Bun.password.verify(password, user.password_hash)))
-      return unauthorized(c);
+      return unauthorized(c, "Invalid username or password");
 
     const userId = user.id.toString();
     const admin = user.admin;

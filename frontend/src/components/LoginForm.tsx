@@ -20,6 +20,12 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -79,7 +85,7 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
         </div>
 
         {error && (
-          <div className="mb-5 p-4 bg-red-500/20 border border-red-500/50 rounded-lg backdrop-blur-sm">
+          <div className="mb-5 p-4 bg-red-500/20 border border-red-500/50 rounded-lg backdrop-blur-sm animate-slideDown">
             <div className="flex items-start">
               <svg
                 className="h-5 w-5 text-red-400 mt-0.5 mr-3 shrink-0"

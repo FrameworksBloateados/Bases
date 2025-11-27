@@ -18,15 +18,34 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeatedPassword, setRepeatedPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (repeatedPassword !== password) {
-      alert('Las contras son diferentes!');
+    setError(null);
+
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
       return;
     }
-    await onSubmit({username, email, password});
-    onSuccess?.();
+    if (repeatedPassword !== password) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await onSubmit({username, email, password});
+      onSuccess?.();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Error al crear la cuenta. Intentá de nuevo.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -73,6 +92,26 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
           </p>
         </div>
 
+        {error && (
+          <div className="mb-5 p-4 bg-red-500/20 border border-red-500/50 rounded-lg backdrop-blur-sm animate-slideDown">
+            <div className="flex items-start">
+              <svg
+                className="h-5 w-5 text-red-400 mt-0.5 mr-3 shrink-0"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <p className="text-sm text-red-200 font-medium">{error}</p>
+            </div>
+          </div>
+        )}
+
         <UsernameField
           label={'Nombre de usuario'}
           username={username}
@@ -94,9 +133,10 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
 
         <button
           type="submit"
-          className="w-full py-3 mt-2 font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99"
+          disabled={isLoading}
+          className="w-full py-3 mt-2 font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Crear cuenta
+          {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
         </button>
 
         <p className="text-sm text-slate-300 mt-6 text-center">

@@ -18,7 +18,16 @@ export const login = async ({
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Login failed: ${errorText}`);
+    let errorMessage = 'Error desconocido';
+    
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
+    } catch {
+      errorMessage = errorText || errorMessage;
+    }
+    
+    throw new HttpError(response.status, errorMessage);
   }
 
   const {accessToken} = await response.json();
@@ -45,7 +54,16 @@ export const register = async ({
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Registration failed: ${errorText}`);
+    let errorMessage = 'Error desconocido';
+    
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
+    } catch {
+      errorMessage = errorText || errorMessage;
+    }
+    
+    throw new HttpError(response.status, errorMessage);
   }
 
   const {accessToken} = await response.json();
@@ -60,7 +78,16 @@ export const logout = async () => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Logout failed: ${errorText}`);
+    let errorMessage = 'Error desconocido';
+    
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
+    } catch {
+      errorMessage = errorText || errorMessage;
+    }
+    
+    throw new HttpError(response.status, errorMessage);
   }
 }
 
@@ -75,7 +102,16 @@ export const refreshToken = async () => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Token refresh failed: ${errorText}`);
+    let errorMessage = 'Error desconocido';
+    
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
+    } catch {
+      errorMessage = errorText || errorMessage;
+    }
+    
+    throw new HttpError(response.status, errorMessage);
   }
 
   const {accessToken} = await response.json();

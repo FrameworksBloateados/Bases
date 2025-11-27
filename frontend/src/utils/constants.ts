@@ -20,17 +20,17 @@ export const API_ENDPOINTS = {
   // Tables
   TABLES: `${API_BASE_URL}/tables`,
 
-  // Data endpoints (with json suffix)
-  MATCHES: `${API_BASE_URL}/matches/json`,
-  TEAMS: `${API_BASE_URL}/teams/json`,
-  PLAYERS: `${API_BASE_URL}/players/json`,
-  MATCHES_RESULTS: `${API_BASE_URL}/matches_results/json`,
-  PLAYER_MATCH_STATS: `${API_BASE_URL}/player_match_stats/json`,
+  // Data endpoints
+  MATCHES: `${API_BASE_URL}/matches`,
+  TEAMS: `${API_BASE_URL}/teams`,
+  PLAYERS: `${API_BASE_URL}/players`,
+  MATCHES_RESULTS: `${API_BASE_URL}/matches_results`,
+  PLAYER_MATCH_STATS: `${API_BASE_URL}/player_match_stats`,
 } as const;
 
 // Helper function to build table endpoint
 export const getTableEndpoint = (tableName: string) =>
-  `${API_BASE_URL}/${tableName}/json`;
+  `${API_BASE_URL}/${tableName}`;
 
 // Error Messages
 export const ERROR_MESSAGES = {

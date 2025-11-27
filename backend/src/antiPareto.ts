@@ -90,30 +90,22 @@ const createGenericAPICrudForTheAntiParetoRule = async (
     APIRoute,
     isPublicGet
   );
-  const postJsonDoc = await antiParetoDoc.createPostJsonDoc(
-    APIRoute,
-    isPublicPost
-  );
-  const postCsvDoc = await antiParetoDoc.createPostCsvDoc(
-    APIRoute,
-    isPublicPost
-  );
-  const putJsonDoc = await antiParetoDoc.createPutJsonDoc(
-    APIRoute,
-    isPublicPut
-  );
+  const postDoc = await antiParetoDoc.createPostJsonDoc(APIRoute, isPublicPost); // Usar doc de JSON, pero acepta ambos
+  const putDoc = await antiParetoDoc.createPutJsonDoc(APIRoute, isPublicPut);
   const deleteDoc = await antiParetoDoc.createDeleteDoc(
     APIRoute,
     isPublicDelete
   );
 
-  App.get(`/${APIRoute}/json`, getAllDoc.describer, async c => {
+  // GET /tabla
+  App.get(`/${APIRoute}`, getAllDoc.describer, async c => {
     if (!isPublicGet && !c.user.admin) return forbidden(c);
-    const result = await sql`SELECT * FROM ${sql(APIRoute)}`; // Safe from SQL injection, see https://bun.com/docs/runtime/sql.
+    const result = await sql`SELECT * FROM ${sql(APIRoute)}`;
     return c.json(result);
   });
 
-  App.get(`/${APIRoute}/:id/json`, getByIdDoc.describer, async c => {
+  // GET /tabla/:id
+  App.get(`/${APIRoute}/:id`, getByIdDoc.describer, async c => {
     if (!isPublicGet && !c.user.admin) return forbidden(c);
     const {id} = c.req.param();
     const result = await sql`SELECT * FROM ${sql(APIRoute)} WHERE id = ${id}`;
@@ -126,46 +118,57 @@ const createGenericAPICrudForTheAntiParetoRule = async (
     return c.json(result[0]);
   });
 
-  const insertData = async (data: any) => {
-    await sql`INSERT INTO ${sql(APIRoute)} ${sql(data)}`;
-  };
-
-  App.post(`/${APIRoute}/json`, postJsonDoc.describer, async c => {
+  // POST /tabla (acepta JSON o CSV)
+  App.post(`/${APIRoute}`, postDoc.describer, async c => {
     if (!isPublicPost && !c.user.admin) return forbidden(c);
     try {
-      const body = await c.req.json();
-      await insertData(body);
+      const contentType = c.req.header('content-type') || '';
+      let data;
+      if (contentType.includes('application/json')) {
+        data = await c.req.json();
+      } else if (contentType.includes('multipart/form-data')) {
+        const body = await c.req.parseBody();
+        const csv = body['file'] as File;
+        if (!csv) throw new Error('No se envió archivo CSV');
+        data = csvToJson.csvStringToJson(await csv.text());
+      } else {
+        return c.json(
+          {
+            message:
+              'Content-Type no soportado. Usá application/json o multipart/form-data.',
+          },
+          400
+        );
+      }
+      await sql`INSERT INTO ${sql(APIRoute)} ${sql(data)}`;
       return c.json({message: `Solicitud POST exitosa a ${APIRoute}`});
     } catch (error) {
-      return c.json({message: `Hubo un error al insertar datos en ${APIRoute}`}, 400);
+      return c.json(
+        {message: `Hubo un error al insertar datos en ${APIRoute}`},
+        400
+      );
     }
   });
 
-  App.post(`/${APIRoute}/csv`, postCsvDoc.describer, async c => {
-    if (!isPublicPost && !c.user.admin) return forbidden(c);
-    try {
-      const body = await c.req.parseBody();
-      const csv = body['file'] as File;
-      const json = csvToJson.csvStringToJson(await csv.text());
-      await insertData(json);
-      return c.json({message: `Solicitud POST exitosa a ${APIRoute}`});
-    } catch (error) {
-      return c.json({message: `Hubo un error al insertar datos en ${APIRoute}. ¿Es tu CSV válido?`}, 400);
-    }
-  });
-
-  App.put(`/${APIRoute}/:id/json`, putJsonDoc.describer, async c => {
+  // PUT /tabla/:id (solo JSON)
+  App.put(`/${APIRoute}/:id`, putDoc.describer, async c => {
     if (!isPublicPut && !c.user.admin) return forbidden(c);
     try {
       const {id} = c.req.param();
       const body = await c.req.json();
       await sql`UPDATE ${sql(APIRoute)} SET ${sql(body)} WHERE id = ${id}`;
-      return c.json({message: `Solicitud PUT exitosa a ${APIRoute} con id ${id}`});
+      return c.json({
+        message: `Solicitud PUT exitosa a ${APIRoute} con id ${id}`,
+      });
     } catch (error) {
-      return c.json({message: `Cuerpo de solicitud inválido para PUT ${APIRoute}`}, 400);
+      return c.json(
+        {message: `Cuerpo de solicitud inválido para PUT ${APIRoute}`},
+        400
+      );
     }
   });
 
+  // DELETE /tabla/:id
   App.delete(`/${APIRoute}/:id`, deleteDoc.describer, async c => {
     if (!isPublicDelete && !c.user.admin) return forbidden(c);
     const {id} = c.req.param();
@@ -193,6 +196,8 @@ const createGenericAPICrudForTheAntiParetoRule = async (
         500
       );
     }
-    return c.json({message: `Solicitud DELETE exitosa a ${APIRoute} con id ${id}`});
+    return c.json({
+      message: `Solicitud DELETE exitosa a ${APIRoute} con id ${id}`,
+    });
   });
 };

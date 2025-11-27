@@ -161,7 +161,7 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        `${getTableEndpoint(selectedTable).replace('/json', '')}/$${selectedRow.id}/json`,
+        `${getTableEndpoint(selectedTable)}/${selectedRow.id}`,
         {
           method: 'PUT',
           headers: {
@@ -223,7 +223,7 @@ export function Dashboard() {
     try {
       const deletePromises = Array.from(selectedRows).map(id =>
         authenticatedFetch(
-          `${getTableEndpoint(selectedTable).replace('/json', '')}/${id}`,
+          `${getTableEndpoint(selectedTable)}/${id}`,
           {method: 'DELETE'}
         )
       );
@@ -418,7 +418,7 @@ export function Dashboard() {
       formData.append('file', file);
 
       const response = await authenticatedFetch(
-        `${getTableEndpoint(selectedTable).replace('/json', '/csv')}`,
+        getTableEndpoint(selectedTable),
         {
           method: 'POST',
           body: formData,

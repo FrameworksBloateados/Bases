@@ -174,8 +174,9 @@ export const createPostJsonDoc = async (
 ): Promise<RouteDocumentationWithoutValidator> => {
   const columns = await getTableColumns(tableName);
   const openAPISchema = generateOpenAPISchema(columns);
+  const columnNames = columns.map(c => c.column_name).join(', ');
 
-  const description = `Inserta registros en la tabla '${tableName}' desde JSON.${
+  const description = `Inserta registros en la tabla '${tableName}' desde JSON o subiendo un archivo CSV. Podés mandar un JSON (application/json) o subir un archivo CSV (multipart/form-data, campo 'file').${
     isPublic ? '' : ' Requiere permisos de administrador.'
   }`;
 
@@ -189,6 +190,19 @@ export const createPostJsonDoc = async (
         content: {
           'application/json': {
             schema: openAPISchema,
+          },
+          'multipart/form-data': {
+            schema: {
+              type: 'object',
+              properties: {
+                file: {
+                  type: 'string',
+                  format: 'binary',
+                  description: `Archivo CSV con columnas: ${columnNames}`,
+                },
+              },
+              required: ['file'],
+            },
           },
         },
       },

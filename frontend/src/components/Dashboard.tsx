@@ -67,7 +67,7 @@ const exampleMatches = [
     }
 ];
 
-const UserInfoTab = () => (
+const UserInfoTab = ({ userInfo }: { userInfo: { username: string; email: string; balance: number } | null }) => (
   <div className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl p-8 transition-all duration-300 hover:shadow-black/50">
     <h3 className="text-2xl font-bold text-white mb-6">User Information</h3>
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -77,7 +77,7 @@ const UserInfoTab = () => (
         </svg>
         <div>
           <p className="text-sm text-slate-400">Username</p>
-          <p className="text-lg text-white font-semibold">JohnDoe</p>
+          <p className="text-lg text-white font-semibold">{userInfo?.username || 'N/A'}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -86,7 +86,7 @@ const UserInfoTab = () => (
         </svg>
         <div>
           <p className="text-sm text-slate-400">Email</p>
-          <p className="text-lg text-white font-semibold">johndoe@example.com</p>
+          <p className="text-lg text-white font-semibold">{userInfo?.email || 'N/A'}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ const UserInfoTab = () => (
         </svg>
         <div>
           <p className="text-sm text-slate-400">Balance</p>
-          <p className="text-lg text-green-400 font-semibold">$1,234.56</p>
+          <p className="text-lg text-green-400 font-semibold">${userInfo?.balance.toFixed(2) || '0.00'}</p>
         </div>
       </div>
     </div>
@@ -161,6 +161,7 @@ const AddBalanceTab = () => (
   </div>
 );
 
+
 const GenericTableTab = ({ data, title }: { data: any[]; title: string }) => {
   const columns = Object.keys(data[0] || {});
 
@@ -210,10 +211,11 @@ const GenericTableTab = ({ data, title }: { data: any[]; title: string }) => {
 };
 
 const Dashboard = () => {
+  
   const tabs = {
     info: {
       label: 'User Info',
-      content: <UserInfoTab />,
+      content: <UserInfoTab userInfo={{ username: 'JohnDoe', email: 'johndoe@example.com', balance: 1234.56 }} />,
     },
     updatePassword: {
       label: 'Update Password',
@@ -245,7 +247,7 @@ const Dashboard = () => {
       {/* Sidebar */}
       <div className="w-64 bg-slate-800 text-white flex flex-col p-4">
         <h2 className="text-xl font-bold mb-6">Dashboard</h2>
-        {Object.entries(tabs).map(([key, tab], index) => (
+        {Object.entries(tabs).map(([key, tab]) => (
           <>
             {key === 'matches' && <hr className="my-4 border-slate-600" />}
             <button

@@ -9,6 +9,12 @@ export const openAPIOptions = {
       version: '0.0.0',
       description: 'Documentación con Swagger',
     },
+    servers: [
+      {
+        url: '/api/v1',
+        description: 'Servidor API',
+      },
+    ],
     tags: [
       {name: 'Auth', description: 'Endpoints de autenticación'},
       {name: 'User', description: 'Endpoints del usuario'},

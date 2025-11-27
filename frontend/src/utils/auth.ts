@@ -18,7 +18,16 @@ export const login = async ({
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Login failed: ${errorText}`);
+    let errorMessage = 'Error desconocido';
+
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
+    } catch {
+      errorMessage = errorText || errorMessage;
+    }
+
+    throw new HttpError(response.status, errorMessage);
   }
 
   const {accessToken} = await response.json();
@@ -34,18 +43,30 @@ export const register = async ({
   password: string;
   email: string;
 }) => {
-  const response = await fetch('http://127-0-0-1.sslip.io/api/v1/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({username, email, password}),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-  });
+  const response = await fetch(
+    'http://127-0-0-1.sslip.io/api/v1/auth/register',
+    {
+      method: 'POST',
+      body: JSON.stringify({username, email, password}),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    }
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Registration failed: ${errorText}`);
+    let errorMessage = 'Error desconocido';
+
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
+    } catch {
+      errorMessage = errorText || errorMessage;
+    }
+
+    throw new HttpError(response.status, errorMessage);
   }
 
   const {accessToken} = await response.json();
@@ -60,9 +81,18 @@ export const logout = async () => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Logout failed: ${errorText}`);
+    let errorMessage = 'Error desconocido';
+
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
+    } catch {
+      errorMessage = errorText || errorMessage;
+    }
+
+    throw new HttpError(response.status, errorMessage);
   }
-}
+};
 
 export const refreshToken = async () => {
   const response = await fetch(
@@ -75,12 +105,21 @@ export const refreshToken = async () => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Token refresh failed: ${errorText}`);
+    let errorMessage = 'Error desconocido';
+
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
+    } catch {
+      errorMessage = errorText || errorMessage;
+    }
+
+    throw new HttpError(response.status, errorMessage);
   }
 
   const {accessToken} = await response.json();
   return accessToken;
-}
+};
 
 export class HttpError extends Error {
   status: number;
@@ -110,14 +149,14 @@ export const authenticatedFetch = async (
   if (!response.ok) {
     const errorText = await response.text();
     let errorMessage = 'Error desconocido';
-    
+
     try {
       const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.error || errorMessage;
+      errorMessage = errorJson.message || errorJson.error || errorMessage;
     } catch {
       errorMessage = errorText || errorMessage;
     }
-    
+
     throw new HttpError(response.status, errorMessage);
   }
 

@@ -34,14 +34,29 @@ export function useMatchData() {
     const fetchData = async () => {
       try {
         setError(null);
-        
-        const [matchesRes, teamsRes, playersRes, resultsRes, statsRes] = await Promise.all([
-          authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/matches/json', {method: 'GET'}),
-          authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/teams/json', {method: 'GET'}),
-          authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/players/json', {method: 'GET'}),
-          authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/matches_results/json', {method: 'GET'}),
-          authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/player_match_stats/json', {method: 'GET'}),
-        ]);
+
+        const [matchesRes, teamsRes, playersRes, resultsRes, statsRes] =
+          await Promise.all([
+            authenticatedFetch(
+              'http://127-0-0-1.sslip.io/api/v1/matches/json',
+              {method: 'GET'}
+            ),
+            authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/teams/json', {
+              method: 'GET',
+            }),
+            authenticatedFetch(
+              'http://127-0-0-1.sslip.io/api/v1/players/json',
+              {method: 'GET'}
+            ),
+            authenticatedFetch(
+              'http://127-0-0-1.sslip.io/api/v1/matches_results/json',
+              {method: 'GET'}
+            ),
+            authenticatedFetch(
+              'http://127-0-0-1.sslip.io/api/v1/player_match_stats/json',
+              {method: 'GET'}
+            ),
+          ]);
 
         const matchesData: Match[] = await matchesRes.json();
         const teamsData: Team[] = await teamsRes.json();
@@ -57,7 +72,9 @@ export function useMatchData() {
           playerStats: statsData,
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load match data.');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load match data.'
+        );
       }
     };
 
@@ -79,11 +96,14 @@ export function useUserData() {
         'http://127-0-0-1.sslip.io/api/v1/user/whoami',
         {method: 'GET'}
       );
-      if (!userResponse.ok) throw new Error(`User fetch failed: ${userResponse.status}`);
+      if (!userResponse.ok)
+        throw new Error(`User fetch failed: ${userResponse.status}`);
       const userData: WhoAmIResponse = await userResponse.json();
       setUserInfo(userData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load user data.');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load user data.'
+      );
     }
   };
 

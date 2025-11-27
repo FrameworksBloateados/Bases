@@ -12,7 +12,7 @@ if (
   !process.env.ACCESS_TOKEN_PUBLIC_KEY
 ) {
   throw new Error(
-    'Missing ACCESS_TOKEN_PRIVATE_KEY or ACCESS_TOKEN_PUBLIC_KEY environment variables'
+    'Faltan las variables de entorno ACCESS_TOKEN_PRIVATE_KEY o ACCESS_TOKEN_PUBLIC_KEY'
   );
 }
 
@@ -21,7 +21,7 @@ if (
   !process.env.REFRESH_TOKEN_PUBLIC_KEY
 ) {
   throw new Error(
-    'Missing REFRESH_TOKEN_PRIVATE_KEY or REFRESH_TOKEN_PUBLIC_KEY environment variables'
+    'Faltan las variables de entorno REFRESH_TOKEN_PRIVATE_KEY o REFRESH_TOKEN_PUBLIC_KEY'
   );
 }
 
@@ -93,7 +93,7 @@ export const generateTokenPair = async (
       fingerprint, // Should be stored in a cookie (__Secure-Fgp) with HttpOnly, Secure and SameSite=Strict attributes
     };
   } catch (err: any) {
-    const errorMessage = 'Error generating token pair';
+    const errorMessage = 'Error al generar el par de tokens';
     console.error(`${errorMessage}:`, err);
     throw new Error(errorMessage);
   }
@@ -112,7 +112,7 @@ export const regenerateAccessToken = async (
       fph: hashedFingerprint,
     });
   } catch (err: any) {
-    const errorMessage = 'Error generating access token';
+    const errorMessage = 'Error al generar el token de acceso';
     console.error(`${errorMessage}:`, err);
     throw new Error(errorMessage);
   }
@@ -126,7 +126,7 @@ const getPayload = async (
   try {
     const {payload} = await jwtVerify(token, spki);
     const expectedHash = hashFingerprint(fingerprint);
-    if (payload.fph !== expectedHash) throw new Error('Invalid fingerprint');
+    if (payload.fph !== expectedHash) throw new Error('Huella digital inválida');
     return payload;
   } catch (err: any) {
     throw err;

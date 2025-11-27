@@ -60,7 +60,9 @@ function AppRoutes() {
               onSuccess={() => {
                 return;
               }}
-              onSubmit={({username, email, password}) => register(username, email, password)}
+              onSubmit={({username, email, password}) =>
+                register(username, email, password)
+              }
             />
           )
         }

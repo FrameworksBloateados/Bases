@@ -33,7 +33,9 @@ export function Toast({message, type, onClose, duration = 3000}: ToastProps) {
 
   return (
     <div
-      className={`fixed top-4 right-4 z-300 ${isExiting ? 'animate-fade-out' : 'animate-scale-in'}`}
+      className={`fixed top-4 right-4 z-300 ${
+        isExiting ? 'animate-fade-out' : 'animate-scale-in'
+      }`}
     >
       <div
         className={`flex items-center gap-3 px-6 py-4 ${typeStyles[type]} border-2 text-white rounded-lg shadow-2xl backdrop-blur-lg min-w-[300px] max-w-md`}

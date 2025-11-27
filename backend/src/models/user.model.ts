@@ -37,6 +37,13 @@ export class User {
     `;
     this.password_hash = passwordHash;
   }
+
+  async updateEmail(email: string): Promise<void> {
+    await sql`
+      UPDATE users SET email = ${email} WHERE id = ${this.id};
+    `;
+    this.email = email;
+  }
 }
 
 export const findUserByEmail = async (email: string): Promise<User | null> => {

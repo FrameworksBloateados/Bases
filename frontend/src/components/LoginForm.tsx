@@ -20,6 +20,12 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -71,15 +77,15 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-white mb-2 tracking-tight">
-            Welcome Back
+            ¡Hola otra vez!
           </h2>
           <p className="text-slate-300 text-sm">
-            Sign in to keep burning through your savings
+            Iniciá sesión para seguir quemando tus ahorros
           </p>
         </div>
 
         {error && (
-          <div className="mb-5 p-4 bg-red-500/20 border border-red-500/50 rounded-lg backdrop-blur-sm">
+          <div className="mb-5 p-4 bg-red-500/20 border border-red-500/50 rounded-lg backdrop-blur-sm animate-slideDown">
             <div className="flex items-start">
               <svg
                 className="h-5 w-5 text-red-400 mt-0.5 mr-3 shrink-0"
@@ -99,13 +105,13 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
         )}
 
         <UsernameField
-          label="Username"
+          label="Nombre de usuario"
           username={username}
           onChangeHandler={setUsername}
         />
 
         <PasswordField
-          label={'Password'}
+          label="Contraseña"
           password={password}
           onChangeHandler={setPassword}
         />
@@ -115,16 +121,16 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
           disabled={isLoading}
           className="w-full py-3 mt-2 font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Signing In...' : 'Sign In'}
+          {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
         </button>
 
         <p className="text-sm text-slate-300 mt-6 text-center">
-          Don't have an account?{' '}
+          ¿Aún no tenés cuenta?{' '}
           <Link
             to="/register"
             className="text-white font-semibold hover:text-slate-200 transition-colors duration-200 underline decoration-2 decoration-slate-400"
           >
-            Create Account
+            Hacé clic acá
           </Link>
         </p>
       </form>

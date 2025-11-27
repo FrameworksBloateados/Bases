@@ -532,3 +532,60 @@ export const createDeleteDoc = async (
     }),
   };
 };
+
+export const createGetTablesDoc = async (): Promise<RouteDocumentationWithoutValidator> => {
+  const tableSchema = z.object({
+    name: z.string(),
+    columns: z.array(
+      z.object({
+        name: z.string(),
+        type: z.string(),
+        nullable: z.boolean(),
+        default: z.string().nullable(),
+      })
+    ),
+  });
+
+  return {
+    describer: describeRoute({
+      tags: ['AntiPareto'],
+      description: 'Obtiene la lista de todas las tablas disponibles con su estructura de columnas. Requiere permisos de administrador.',
+      security: [{bearerAuth: []}, {cookieAuth: []}, {cookieFingerprint: []}],
+      responses: {
+        200: {
+          description: 'Lista de tablas y su estructura obtenida exitosamente',
+          content: {
+            'application/json': {
+              schema: resolver(z.array(tableSchema)),
+            },
+          },
+        },
+        403: {
+          description: 'Forbidden',
+          content: {
+            'application/json': {
+              schema: resolver(
+                z.object({
+                  error: z.string(),
+                })
+              ),
+            },
+          },
+        },
+        401: {
+          description: 'Unauthorized',
+          content: {
+            'application/json': {
+              schema: resolver(
+                z.object({
+                  error: z.string(),
+                })
+              ),
+            },
+          },
+        },
+      },
+    }),
+  };
+};
+

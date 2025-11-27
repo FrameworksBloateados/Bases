@@ -35,7 +35,9 @@ export async function initDatabase() {
       id SERIAL PRIMARY KEY,
       team_a_id INTEGER REFERENCES teams(id),
       team_b_id INTEGER REFERENCES teams(id),
-      match_date TIMESTAMP NOT NULL
+      match_date TIMESTAMP NOT NULL,
+      streaming_platform VARCHAR(10) CHECK (streaming_platform IN ('KICK')),
+      streaming_username VARCHAR(255)
     );
   `;
 

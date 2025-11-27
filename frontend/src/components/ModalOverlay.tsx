@@ -34,9 +34,9 @@ export function ModalOverlay({
       onClick={onClose}
     >
       <div
-        className={`bg-slate-800 border border-white/20 rounded-2xl p-8 ${maxWidthClasses[maxWidth]} w-full ${
-          isClosing ? 'animate-scale-out' : 'animate-scale-in'
-        }`}
+        className={`bg-slate-800 border border-white/20 rounded-2xl p-8 ${
+          maxWidthClasses[maxWidth]
+        } w-full ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}
         onClick={e => e.stopPropagation()}
       >
         {children}

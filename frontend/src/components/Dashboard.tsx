@@ -2,7 +2,14 @@ import {useState, useEffect} from 'react';
 import {useNavigate} from 'react-router';
 import {useAuth} from '../context/AuthContext';
 import {useUserData} from '../hooks/useMatchData';
-import {getTableEndpoint, ERROR_MESSAGES, API_ENDPOINTS} from '../utils/constants';
+import {useModalState} from '../hooks/useModalState';
+import {
+  getTableEndpoint,
+  ERROR_MESSAGES,
+  API_ENDPOINTS,
+} from '../utils/constants';
+import {parseErrorMessage} from '../utils/errorHandling';
+import {logger} from '../utils/logger';
 import {LoadingSpinner} from './LoadingSpinner';
 import {BackButton} from './BackButton';
 import {ChangePasswordModal} from './ChangePasswordModal';
@@ -41,31 +48,25 @@ export function Dashboard() {
   const [selectedRow, setSelectedRow] = useState<Record<string, any> | null>(
     null
   );
-  const [isModalClosing, setIsModalClosing] = useState(false);
+  const rowModal = useModalState();
   const [isSaving, setIsSaving] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isDeleteModalClosing, setIsDeleteModalClosing] = useState(false);
+  const deleteModal = useModalState();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [isAddModalClosing, setIsAddModalClosing] = useState(false);
+  const addModal = useModalState();
   const [isAdding, setIsAdding] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [rowModalError, setRowModalError] = useState<string | null>(null);
 
   // Password change states
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [isChangePasswordModalClosing, setIsChangePasswordModalClosing] =
-    useState(false);
+  const passwordModal = useModalState();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // Email change states
-  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
-  const [isChangeEmailModalClosing, setIsChangeEmailModalClosing] =
-    useState(false);
+  const emailModal = useModalState();
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
@@ -89,12 +90,9 @@ export function Dashboard() {
     setLoadingTables(true);
     setError(null);
     try {
-      const response = await authenticatedFetch(
-        API_ENDPOINTS.TABLES,
-        {
-          method: 'GET',
-        }
-      );
+      const response = await authenticatedFetch(API_ENDPOINTS.TABLES, {
+        method: 'GET',
+      });
       if (!response.ok) throw new Error(ERROR_MESSAGES.LOAD_TABLES);
       const data: TableInfo[] = await response.json();
       setTables(data);
@@ -112,12 +110,10 @@ export function Dashboard() {
     setLoadingData(true);
     setError(null);
     try {
-      const response = await authenticatedFetch(
-        getTableEndpoint(tableName),
-        {method: 'GET'}
-      );
-      if (!response.ok)
-        throw new Error(ERROR_MESSAGES.LOAD_TABLE_DATA);
+      const response = await authenticatedFetch(getTableEndpoint(tableName), {
+        method: 'GET',
+      });
+      if (!response.ok) throw new Error(ERROR_MESSAGES.LOAD_TABLE_DATA);
       const data: TableData = await response.json();
       const sortedData = data.sort((a, b) => {
         if (a.id && b.id) return a.id - b.id;
@@ -145,15 +141,14 @@ export function Dashboard() {
 
   const handleRowClick = (row: Record<string, any>) => {
     setSelectedRow(row);
-    setIsModalClosing(false);
+    rowModal.open();
     setRowModalError(null);
   };
 
   const handleCloseModal = () => {
-    setIsModalClosing(true);
+    rowModal.close();
     setTimeout(() => {
       setSelectedRow(null);
-      setIsModalClosing(false);
       setRowModalError(null);
     }, 300);
   };
@@ -166,7 +161,9 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        `${getTableEndpoint(selectedTable).replace('/json', '')}/${selectedRow.id}/json`,
+        `${getTableEndpoint(selectedTable).replace('/json', '')}/${
+          selectedRow.id
+        }/json`,
         {
           method: 'PUT',
           headers: {
@@ -177,25 +174,20 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        let errorMessage = 'Error al guardar los cambios';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (parseError) {
-          errorMessage = `Error ${response.status}: ${response.statusText}`;
-        }
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al guardar los cambios'
+        );
         throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
       handleCloseModal();
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : ERROR_MESSAGES.SAVE_CHANGES;
-      setRowModalError(errorMsg);
-      console.error('Error in handleSaveRowChanges:', err);
+      setRowModalError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.SAVE_CHANGES
+      );
+      logger.error('Error in handleSaveRowChanges:', err);
     } finally {
       setIsSaving(false);
     }
@@ -251,21 +243,17 @@ export function Dashboard() {
 
       await fetchTableData(selectedTable);
       setSelectedRows(new Set());
-      
+
       // Solo cerrar el modal si la eliminación fue exitosa
-      setIsDeleteModalClosing(true);
+      deleteModal.close();
       setTimeout(() => {
-        setShowDeleteConfirm(false);
-        setIsDeleteModalClosing(false);
         setDeleteError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : ERROR_MESSAGES.DELETE_RECORDS;
-      setDeleteError(errorMsg);
-      console.error('Error in handleDeleteSelected:', err);
+      setDeleteError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.DELETE_RECORDS
+      );
+      logger.error('Error in handleDeleteSelected:', err);
     } finally {
       setIsDeleting(false);
     }
@@ -279,39 +267,31 @@ export function Dashboard() {
     setPasswordError(null);
 
     try {
-      const response = await authenticatedFetch(
-        API_ENDPOINTS.CHANGE_PASSWORD,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({actualPassword, newPassword}),
-        }
-      );
+      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_PASSWORD, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({actualPassword, newPassword}),
+      });
 
       if (!response.ok) {
-        let errorMessage = 'Error al cambiar la contraseña';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {}
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al cambiar la contraseña'
+        );
         throw new Error(errorMessage);
       }
 
-      setIsChangePasswordModalClosing(true);
+      passwordModal.close();
       setTimeout(() => {
-        setShowChangePasswordModal(false);
-        setIsChangePasswordModalClosing(false);
         setPasswordError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : ERROR_MESSAGES.CHANGE_PASSWORD;
-      setPasswordError(errorMsg);
-      console.error('Error in handleChangePassword:', err);
+      setPasswordError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.CHANGE_PASSWORD
+      );
+      logger.error('Error in handleChangePassword:', err);
     } finally {
       setIsChangingPassword(false);
     }
@@ -322,40 +302,32 @@ export function Dashboard() {
     setEmailError(null);
 
     try {
-      const response = await authenticatedFetch(
-        API_ENDPOINTS.CHANGE_EMAIL,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({password, newEmail}),
-        }
-      );
+      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_EMAIL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({password, newEmail}),
+      });
 
       if (!response.ok) {
-        let errorMessage = 'Error al cambiar el email';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {}
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al cambiar el email'
+        );
         throw new Error(errorMessage);
       }
 
       await refetchUserInfo();
-      setIsChangeEmailModalClosing(true);
+      emailModal.close();
       setTimeout(() => {
-        setShowChangeEmailModal(false);
-        setIsChangeEmailModalClosing(false);
         setEmailError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : ERROR_MESSAGES.CHANGE_EMAIL;
-      setEmailError(errorMsg);
-      console.error('Error in handleChangeEmail:', err);
+      setEmailError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.CHANGE_EMAIL
+      );
+      logger.error('Error in handleChangeEmail:', err);
     } finally {
       setIsChangingEmail(false);
     }
@@ -378,28 +350,23 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        let errorMessage = 'Error al agregar las filas';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {}
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al agregar las filas'
+        );
         throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
-      setIsAddModalClosing(true);
+      addModal.close();
       setTimeout(() => {
-        setShowAddModal(false);
-        setIsAddModalClosing(false);
         setModalError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : ERROR_MESSAGES.ADD_ROWS;
-      setModalError(errorMsg);
-      console.error('Error in handleSubmitWebRows:', err);
+      setModalError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.ADD_ROWS
+      );
+      logger.error('Error in handleSubmitWebRows:', err);
     } finally {
       setIsAdding(false);
     }
@@ -422,28 +389,23 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        let errorMessage = 'Error al procesar el JSON';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {}
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al procesar el JSON'
+        );
         throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
-      setIsAddModalClosing(true);
+      addModal.close();
       setTimeout(() => {
-        setShowAddModal(false);
-        setIsAddModalClosing(false);
         setModalError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : ERROR_MESSAGES.PROCESS_JSON;
-      setModalError(errorMsg);
-      console.error('Error in handleSubmitJsonRows:', err);
+      setModalError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.PROCESS_JSON
+      );
+      logger.error('Error in handleSubmitJsonRows:', err);
     } finally {
       setIsAdding(false);
     }
@@ -466,28 +428,23 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        let errorMessage = 'Error al procesar el archivo CSV';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {}
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al procesar el archivo CSV'
+        );
         throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
-      setIsAddModalClosing(true);
+      addModal.close();
       setTimeout(() => {
-        setShowAddModal(false);
-        setIsAddModalClosing(false);
         setModalError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : ERROR_MESSAGES.PROCESS_CSV;
-      setModalError(errorMsg);
-      console.error('Error in handleSubmitCsvFile:', err);
+      setModalError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.PROCESS_CSV
+      );
+      logger.error('Error in handleSubmitCsvFile:', err);
     } finally {
       setIsAdding(false);
     }
@@ -610,8 +567,8 @@ export function Dashboard() {
                   <ProfileSection
                     userInfo={userInfo}
                     userError={userError}
-                    onChangePassword={() => setShowChangePasswordModal(true)}
-                    onChangeEmail={() => setShowChangeEmailModal(true)}
+                    onChangePassword={passwordModal.open}
+                    onChangeEmail={emailModal.open}
                   />
                 )}
 
@@ -631,9 +588,9 @@ export function Dashboard() {
                     onToggleSelectAll={toggleSelectAll}
                     onDeleteSelected={() => {
                       setDeleteError(null);
-                      setShowDeleteConfirm(true);
+                      deleteModal.open();
                     }}
-                    onShowAddModal={() => setShowAddModal(true)}
+                    onShowAddModal={addModal.open}
                     isDeleting={isDeleting}
                     isTransitioning={isTransitioning}
                   />
@@ -646,13 +603,11 @@ export function Dashboard() {
 
       {/* Modals */}
       <ConfirmModal
-        isOpen={showDeleteConfirm}
-        isClosing={isDeleteModalClosing}
+        isOpen={deleteModal.isOpen}
+        isClosing={deleteModal.isClosing}
         onClose={() => {
-          setIsDeleteModalClosing(true);
+          deleteModal.close();
           setTimeout(() => {
-            setShowDeleteConfirm(false);
-            setIsDeleteModalClosing(false);
             setDeleteError(null);
           }, 300);
         }}
@@ -669,15 +624,13 @@ export function Dashboard() {
       />
 
       <AddRowsModal
-        isOpen={showAddModal}
-        isClosing={isAddModalClosing}
+        isOpen={addModal.isOpen}
+        isClosing={addModal.isClosing}
         selectedTable={selectedTable}
         selectedTableInfo={selectedTableInfo}
         onClose={() => {
-          setIsAddModalClosing(true);
+          addModal.close();
           setTimeout(() => {
-            setShowAddModal(false);
-            setIsAddModalClosing(false);
             setModalError(null);
           }, 300);
         }}
@@ -689,13 +642,11 @@ export function Dashboard() {
       />
 
       <ChangePasswordModal
-        isOpen={showChangePasswordModal}
-        isClosing={isChangePasswordModalClosing}
+        isOpen={passwordModal.isOpen}
+        isClosing={passwordModal.isClosing}
         onClose={() => {
-          setIsChangePasswordModalClosing(true);
+          passwordModal.close();
           setTimeout(() => {
-            setShowChangePasswordModal(false);
-            setIsChangePasswordModalClosing(false);
             setPasswordError(null);
           }, 300);
         }}
@@ -705,13 +656,11 @@ export function Dashboard() {
       />
 
       <ChangeEmailModal
-        isOpen={showChangeEmailModal}
-        isClosing={isChangeEmailModalClosing}
+        isOpen={emailModal.isOpen}
+        isClosing={emailModal.isClosing}
         onClose={() => {
-          setIsChangeEmailModalClosing(true);
+          emailModal.close();
           setTimeout(() => {
-            setShowChangeEmailModal(false);
-            setIsChangeEmailModalClosing(false);
             setEmailError(null);
           }, 300);
         }}
@@ -721,8 +670,8 @@ export function Dashboard() {
       />
 
       <RowDetailModal
-        isOpen={!!selectedRow}
-        isClosing={isModalClosing}
+        isOpen={rowModal.isOpen}
+        isClosing={rowModal.isClosing}
         selectedRow={selectedRow}
         selectedTable={selectedTable}
         onClose={handleCloseModal}
@@ -1088,7 +1037,7 @@ function DatabaseSection({
           {/* Insert Button */}
           <button
             onClick={onShowAddModal}
-            className="px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-colors duration-300 whitespace-nowrap text-white bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:shadow-xl active:scale-99"
+            className="px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-colors duration-300 whitespace-nowrap text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 hover:shadow-xl active:scale-99"
           >
             <span className="flex items-center gap-2">
               <svg

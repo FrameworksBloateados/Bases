@@ -60,18 +60,15 @@ export function App() {
 
   const handleBet = async (matchId: number, teamId: number, amount: number) => {
     try {
-      const response = await authenticatedFetch(
-        API_ENDPOINTS.BET,
-        {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            match_id: matchId,
-            team_id: teamId,
-            amount: amount,
-          }),
-        }
-      );
+      const response = await authenticatedFetch(API_ENDPOINTS.BET, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          match_id: matchId,
+          team_id: teamId,
+          amount: amount,
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response

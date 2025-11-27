@@ -2,7 +2,12 @@ import {useState, type FormEvent} from 'react';
 import {UsernameField} from './UsernameField';
 import {PasswordField} from './PasswordField';
 import {Link} from 'react-router-dom';
-import {AuthPageLayout, AuthFormContainer, AuthFormHeader, AuthFormError} from './AuthLayout';
+import {
+  AuthPageLayout,
+  AuthFormContainer,
+  AuthFormHeader,
+  AuthFormError,
+} from './AuthLayout';
 import {Button} from './Button';
 import {validatePassword} from '../utils/validation';
 

@@ -8,18 +8,18 @@ export const API_ENDPOINTS = {
   REGISTER: `${API_BASE_URL}/auth/register`,
   LOGOUT: `${API_BASE_URL}/auth/logout`,
   REFRESH: `${API_BASE_URL}/auth/refresh`,
-  
+
   // User
   WHO_AM_I: `${API_BASE_URL}/user/whoami`,
   CHANGE_PASSWORD: `${API_BASE_URL}/user/changePassword`,
   CHANGE_EMAIL: `${API_BASE_URL}/user/changeEmail`,
-  
+
   // Bets
   BET: `${API_BASE_URL}/bet`,
-  
+
   // Tables
   TABLES: `${API_BASE_URL}/tables`,
-  
+
   // Data endpoints (with json suffix)
   MATCHES: `${API_BASE_URL}/matches/json`,
   TEAMS: `${API_BASE_URL}/teams/json`,
@@ -29,7 +29,7 @@ export const API_ENDPOINTS = {
 } as const;
 
 // Helper function to build table endpoint
-export const getTableEndpoint = (tableName: string) => 
+export const getTableEndpoint = (tableName: string) =>
   `${API_BASE_URL}/${tableName}/json`;
 
 // Error Messages

@@ -10,7 +10,7 @@ type BackButtonProps = {
 
 export function BackButton({
   to = '/',
-  label = 'Volver a inicio',
+  label = 'Volver al inicio',
   className = '',
 }: BackButtonProps) {
   const navigate = useNavigate();

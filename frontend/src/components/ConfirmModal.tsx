@@ -1,4 +1,4 @@
-import {ModalOverlay} from './ModalOverlay';
+import {ModalOverlay, ModalHeader} from './ModalOverlay';
 import {Button} from './Button';
 import {WarningIcon, ErrorCircleIcon} from './Icons';
 
@@ -46,41 +46,39 @@ export function ConfirmModal({
 
   return (
     <ModalOverlay isOpen={isOpen} isClosing={isClosing} onClose={onClose}>
+      <ModalHeader title={title} onClose={onClose} />
       <div className="flex items-start gap-4 mb-6">
         <div
           className={`shrink-0 w-12 h-12 rounded-full ${variantColors[variant].bg} flex items-center justify-center`}
         >
           <WarningIcon className={`w-6 h-6 ${variantColors[variant].text}`} />
         </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-            <p
-              className="text-slate-300 text-sm"
-              dangerouslySetInnerHTML={{__html: message}}
-            />
-          </div>
+        <div className="flex-1">
+          <p
+            className="text-slate-300 text-sm"
+            dangerouslySetInnerHTML={{__html: message}}
+          />
         </div>
-
-        {/* Error Display */}
+      </div>
+      {/* Error Display */}
       {error && (
-        <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+        <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg animate-slideDown animate-shake">
           <div className="flex items-start gap-2">
             <ErrorCircleIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
             <p className="text-red-300 text-sm">{error}</p>
           </div>
         </div>
-      )}        <div className="flex gap-3 justify-end">
-          <Button variant="ghost" onClick={onClose} disabled={isLoading}>
-            {cancelText}
-          </Button>
-      <Button
-        variant="primary"
-        onClick={onConfirm}
-        isLoading={isLoading}
-      >
-        {confirmText}
-      </Button>
-    </div>
-  </ModalOverlay>
-);
+      )}{' '}
+      <div className="flex justify-end">
+        <Button
+          variant="primary"
+          onClick={onConfirm}
+          isLoading={isLoading}
+          className="bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800"
+        >
+          {confirmText}
+        </Button>
+      </div>
+    </ModalOverlay>
+  );
 }

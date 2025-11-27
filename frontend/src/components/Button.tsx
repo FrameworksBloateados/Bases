@@ -22,17 +22,15 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    'font-semibold rounded-lg transition-all duration-300 active:scale-99 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    'font-semibold rounded-lg transition-colors duration-300 active:scale-99 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantStyles: Record<ButtonVariant, string> = {
     primary:
       'bg-slate-600 hover:bg-slate-700 text-white shadow-lg hover:shadow-xl',
     secondary:
       'bg-slate-700 hover:bg-slate-600 text-white shadow-lg hover:shadow-xl',
-    danger:
-      'bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl',
-    ghost:
-      'bg-transparent hover:bg-white/10 text-white border border-white/30',
+    danger: 'bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl',
+    ghost: 'bg-transparent hover:bg-white/10 text-white border border-white/30',
     gradient:
       'bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white shadow-lg hover:shadow-xl',
   };
@@ -51,11 +49,7 @@ export function Button({
     >
       {isLoading ? (
         <>
-          <svg
-            className="animate-spin h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
+          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
             <circle
               className="opacity-25"
               cx="12"

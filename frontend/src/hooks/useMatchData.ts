@@ -38,25 +38,15 @@ export function useMatchData() {
 
         const [matchesRes, teamsRes, playersRes, resultsRes, statsRes] =
           await Promise.all([
-            authenticatedFetch(
-              API_ENDPOINTS.MATCHES,
-              {method: 'GET'}
-            ),
+            authenticatedFetch(API_ENDPOINTS.MATCHES, {method: 'GET'}),
             authenticatedFetch(API_ENDPOINTS.TEAMS, {
               method: 'GET',
             }),
-            authenticatedFetch(
-              API_ENDPOINTS.PLAYERS,
-              {method: 'GET'}
-            ),
-            authenticatedFetch(
-              API_ENDPOINTS.MATCHES_RESULTS,
-              {method: 'GET'}
-            ),
-            authenticatedFetch(
-              API_ENDPOINTS.PLAYER_MATCH_STATS,
-              {method: 'GET'}
-            ),
+            authenticatedFetch(API_ENDPOINTS.PLAYERS, {method: 'GET'}),
+            authenticatedFetch(API_ENDPOINTS.MATCHES_RESULTS, {method: 'GET'}),
+            authenticatedFetch(API_ENDPOINTS.PLAYER_MATCH_STATS, {
+              method: 'GET',
+            }),
           ]);
 
         const matchesData: Match[] = await matchesRes.json();
@@ -93,10 +83,9 @@ export function useUserData() {
   const fetchUserInfo = async () => {
     try {
       setError(null);
-      const userResponse = await authenticatedFetch(
-        API_ENDPOINTS.WHO_AM_I,
-        {method: 'GET'}
-      );
+      const userResponse = await authenticatedFetch(API_ENDPOINTS.WHO_AM_I, {
+        method: 'GET',
+      });
       if (!userResponse.ok)
         throw new Error(`User fetch failed: ${userResponse.status}`);
       const userData: WhoAmIResponse = await userResponse.json();

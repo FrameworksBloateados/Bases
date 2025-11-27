@@ -37,17 +37,14 @@ export const register = async ({
   password: string;
   email: string;
 }) => {
-  const response = await fetch(
-    API_ENDPOINTS.REGISTER,
-    {
-      method: 'POST',
-      body: JSON.stringify({username, email, password}),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    }
-  );
+  const response = await fetch(API_ENDPOINTS.REGISTER, {
+    method: 'POST',
+    body: JSON.stringify({username, email, password}),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -73,13 +70,10 @@ export const logout = async () => {
 };
 
 export const refreshToken = async () => {
-  const response = await fetch(
-    API_ENDPOINTS.REFRESH,
-    {
-      method: 'POST',
-      credentials: 'include',
-    }
-  );
+  const response = await fetch(API_ENDPOINTS.REFRESH, {
+    method: 'POST',
+    credentials: 'include',
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -89,7 +83,7 @@ export const refreshToken = async () => {
 
   const {accessToken} = await response.json();
   return accessToken;
-}
+};
 
 export const authenticatedFetch = async (
   url: string,

@@ -19,8 +19,7 @@ export function validatePasswordMatch(
   password: string,
   confirmPassword: string
 ): string | null {
-  if (password !== confirmPassword)
-    return ERROR_MESSAGES.PASSWORDS_DONT_MATCH;
+  if (password !== confirmPassword) return ERROR_MESSAGES.PASSWORDS_DONT_MATCH;
   return null;
 }
 

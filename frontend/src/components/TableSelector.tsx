@@ -23,7 +23,12 @@ export function TableSelector({
   selectedTable,
   onTableChange,
 }: TableSelectorProps) {
-  const {isOpen: showDropdown, isClosing, toggle: toggleDropdown, close} = useDropdownAnimation();
+  const {
+    isOpen: showDropdown,
+    isClosing,
+    toggle: toggleDropdown,
+    close,
+  } = useDropdownAnimation();
 
   const handleTableChange = (tableName: string) => {
     if (tableName === selectedTable) {

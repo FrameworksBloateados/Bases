@@ -549,13 +549,38 @@ export const createGetTablesDoc = async (): Promise<RouteDocumentationWithoutVal
   return {
     describer: describeRoute({
       tags: ['AntiPareto'],
-      description: 'Obtiene la lista de todas las tablas disponibles con su estructura de columnas.',
+      description: 'Obtiene la lista de todas las tablas disponibles con su estructura de columnas. Requiere permisos de administrador.',
+      security: [{bearerAuth: []}, {cookieAuth: []}, {cookieFingerprint: []}],
       responses: {
         200: {
           description: 'Lista de tablas y su estructura obtenida exitosamente',
           content: {
             'application/json': {
               schema: resolver(z.array(tableSchema)),
+            },
+          },
+        },
+        403: {
+          description: 'Forbidden',
+          content: {
+            'application/json': {
+              schema: resolver(
+                z.object({
+                  error: z.string(),
+                })
+              ),
+            },
+          },
+        },
+        401: {
+          description: 'Unauthorized',
+          content: {
+            'application/json': {
+              schema: resolver(
+                z.object({
+                  error: z.string(),
+                })
+              ),
             },
           },
         },

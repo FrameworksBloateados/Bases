@@ -25,6 +25,8 @@ export const createAntiPareto = async (App: Hono) => {
   // Endpoint para listar todas las tablas y su estructura
   const getTablesDoc = await antiParetoDoc.createGetTablesDoc();
   App.get('/tables', getTablesDoc.describer, async c => {
+    if (!c.user.admin) return forbidden(c);
+    
     const tablesInfo = [];
     
     for (const table of tables) {

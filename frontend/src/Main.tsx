@@ -7,6 +7,7 @@ import {RegisterForm} from './components/RegisterForm';
 import ProtectedRoute from './components/ProtectedRoute';
 import {AuthProvider, useAuth} from './context/AuthContext';
 import {Navigate} from 'react-router-dom';
+import Dashboard from './components/Dashboard';
 
 const elem = document.getElementById('root')!;
 function AppRoutes() {
@@ -19,6 +20,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <App />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
           </ProtectedRoute>
         }
       />

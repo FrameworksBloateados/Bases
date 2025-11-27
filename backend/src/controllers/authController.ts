@@ -6,7 +6,11 @@ import {
   setCookies,
   getUserFromPayload,
 } from '../utils/jwt';
-import {findUserByEmail, addUser, findUserByUsername} from '../models/user.model';
+import {
+  findUserByEmail,
+  addUser,
+  findUserByUsername,
+} from '../models/user.model';
 import {deleteCookie, getCookie} from 'hono/cookie';
 import {
   badRequest,
@@ -27,7 +31,8 @@ export const registerHandler = async (c: Context) => {
       return badRequest(c, 'Username, email and password are required');
     if (password.length < 8)
       return badRequest(c, 'Password must be at least 8 characters');
-    if (await findUserByUsername(username) || await findUserByEmail(email)) return conflict(c, 'Username or email already in use');
+    if ((await findUserByUsername(username)) || (await findUserByEmail(email)))
+      return conflict(c, 'Username or email already in use');
 
     const passwordHash = await Bun.password.hash(password);
     const user = await addUser({username, email, passwordHash});
@@ -48,13 +53,9 @@ export const registerHandler = async (c: Context) => {
 
 export const loginHandler = async (c: Context) => {
   try {
-    console.log('Login handler invoked');
     const body = await c.req.json();
     const username = (body?.username || '').toString().trim();
     const password = (body?.password || '').toString();
-
-    console.log('Login attempt with username:', username);
-    console.log('Password provided:', password);
 
     if (!username || !password)
       return badRequest(c, 'Username and password are required');

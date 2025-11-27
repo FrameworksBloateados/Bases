@@ -1,6 +1,7 @@
 import type {Context} from 'hono';
 import {
   findUserById,
+  findUserByEmail,
 } from '../models/user.model';
 import {
   badRequest,
@@ -29,6 +30,32 @@ export const changePasswordHandler = async (c: Context) => {
     return c.json({message: 'Password changed successfully'});
   } catch (err: any) {
     console.error('Error occurred during password change:', err);
+    return internalServerError(c);
+  }
+};
+
+export const changeEmailHandler = async (c: Context) => {
+  try {
+    const body = await c.req.json();
+    const password = (body?.password || '').toString();
+    const newEmail = (body?.newEmail || '').toString();
+    if (!password || !newEmail)
+      return badRequest(c, 'Both password and new email are required');
+    if (!newEmail.includes('@'))
+      return badRequest(c, 'Invalid email format');
+
+    const user = await findUserById(c.user.id);
+    if (!user || !(await Bun.password.verify(password, user.password_hash)))
+      return unauthorized(c);
+
+    const existingUser = await findUserByEmail(newEmail);
+    if (existingUser)
+      return badRequest(c, 'Email already in use');
+
+    await user.updateEmail(newEmail);
+    return c.json({message: 'Email changed successfully'});
+  } catch (err: any) {
+    console.error('Error occurred during email change:', err);
     return internalServerError(c);
   }
 };

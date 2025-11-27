@@ -3,6 +3,7 @@ import {ERROR_MESSAGES} from '../utils/constants';
 import {useModalState} from '../hooks/useModalState';
 import {ModalOverlay, ModalHeader} from './ModalOverlay';
 import {Button} from './Button';
+import { ErrorDisplay } from './ErrorDisplay';
 
 type BetModalProps = {
   matchId: number;
@@ -85,7 +86,7 @@ export function BetModal({
         onKeyDown={handleKeyDown}
       />
 
-      {betError && <ErrorMessage message={betError} />}
+      {betError && <ErrorDisplay message={betError} />}
 
       <ActionButtons
         onCancel={handleClose}
@@ -160,13 +161,7 @@ function BetAmountInput({
   );
 }
 
-function ErrorMessage({message}: {message: string}) {
-  return (
-    <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg animate-shake">
-      <p className="text-sm text-red-300 text-center font-medium">{message}</p>
-    </div>
-  );
-}
+
 
 type ActionButtonsProps = {
   onCancel: () => void;
@@ -175,15 +170,11 @@ type ActionButtonsProps = {
 };
 
 function ActionButtons({
-  onCancel,
   onConfirm,
   isProcessing,
 }: ActionButtonsProps) {
   return (
     <div className="flex gap-3">
-      <Button variant="secondary" onClick={onCancel} disabled={isProcessing}>
-        Cancelar
-      </Button>
       <Button
         variant="gradient"
         onClick={onConfirm}

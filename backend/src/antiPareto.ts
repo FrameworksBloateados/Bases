@@ -137,7 +137,7 @@ const createGenericAPICrudForTheAntiParetoRule = async (
       await insertData(body);
       return c.json({message: `Solicitud POST exitosa a ${APIRoute}`});
     } catch (error) {
-      return c.json({message: `Solicitud inválida para POST ${APIRoute}`}, 400);
+      return c.json({message: `Hubo un error al insertar datos en ${APIRoute}`}, 400);
     }
   });
 
@@ -150,7 +150,7 @@ const createGenericAPICrudForTheAntiParetoRule = async (
       await insertData(json);
       return c.json({message: `Solicitud POST exitosa a ${APIRoute}`});
     } catch (error) {
-      return c.json({message: `Solicitud inválida para POST ${APIRoute}`}, 400);
+      return c.json({message: `Hubo un error al insertar datos en ${APIRoute}. ¿Es tu CSV válido?`}, 400);
     }
   });
 

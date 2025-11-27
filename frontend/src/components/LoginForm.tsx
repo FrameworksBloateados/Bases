@@ -6,10 +6,10 @@ import {
   AuthPageLayout,
   AuthFormContainer,
   AuthFormHeader,
-  AuthFormError,
 } from './AuthLayout';
 import {Button} from './Button';
 import {validatePassword} from '../utils/validation';
+import {FormError} from './FormError';
 
 interface LoginFormProps {
   onSubmit: (credentials: {
@@ -73,8 +73,6 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
           subtitle="Iniciá sesión para seguir quemando tus ahorros"
         />
 
-        <AuthFormError error={error} />
-
         <UsernameField
           label="Nombre de usuario"
           username={username}
@@ -86,6 +84,8 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
           password={password}
           onChangeHandler={setPassword}
         />
+
+        <FormError message={error} className="mb-4 mt-2" />
 
         <Button
           type="submit"
@@ -102,7 +102,7 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
             to="/register"
             className="text-white font-semibold hover:text-slate-200 transition-colors duration-200 underline decoration-2 decoration-slate-400"
           >
-            Hacé clic acá
+            Registrate acá
           </Link>
         </p>
       </AuthFormContainer>

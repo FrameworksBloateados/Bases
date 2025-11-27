@@ -161,9 +161,7 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        `${getTableEndpoint(selectedTable).replace('/json', '')}/${
-          selectedRow.id
-        }/json`,
+        `${getTableEndpoint(selectedTable).replace('/json', '')}/$${selectedRow.id}/json`,
         {
           method: 'PUT',
           headers: {
@@ -617,7 +615,6 @@ export function Dashboard() {
           selectedRows.size === 1 ? 'registro' : 'registros'
         }? <b>Esta acción no se puede deshacer.</b>`}
         confirmText="Sí, eliminar"
-        cancelText="Abortar"
         isLoading={isDeleting}
         variant="danger"
         error={deleteError}

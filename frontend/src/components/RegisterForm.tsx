@@ -7,10 +7,10 @@ import {
   AuthPageLayout,
   AuthFormContainer,
   AuthFormHeader,
-  AuthFormError,
 } from './AuthLayout';
 import {Button} from './Button';
 import {validatePassword, validatePasswordMatch} from '../utils/validation';
+import {FormError} from './FormError';
 
 interface RegisterFormProps {
   onSubmit: (credentials: {
@@ -85,8 +85,6 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
           subtitle="¡Unite a nosotros y arruiná tu vida financiera!"
         />
 
-        <AuthFormError error={error} />
-
         <UsernameField
           label={'Nombre de usuario'}
           username={username}
@@ -101,10 +99,12 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
           onChangeHandler={setPassword}
         />
         <PasswordField
-          label={'Confirmar contraseña'}
+          label={'Repetir contraseña'}
           password={repeatedPassword}
           onChangeHandler={setRepeatedPassword}
         />
+
+        <FormError message={error} className="mb-4 mt-2" />
 
         <Button
           type="submit"

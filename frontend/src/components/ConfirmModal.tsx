@@ -1,6 +1,7 @@
 import {ModalOverlay, ModalHeader} from './ModalOverlay';
 import {Button} from './Button';
 import {WarningIcon, ErrorCircleIcon} from './Icons';
+import {FormError} from './FormError';
 
 type ConfirmModalProps = {
   isOpen: boolean;
@@ -10,7 +11,6 @@ type ConfirmModalProps = {
   title: string;
   message: string;
   confirmText?: string;
-  cancelText?: string;
   isLoading?: boolean;
   variant?: 'danger' | 'warning' | 'info';
   error?: string | null;
@@ -24,7 +24,6 @@ export function ConfirmModal({
   title,
   message,
   confirmText = 'Confirmar',
-  cancelText = 'Cancelar',
   isLoading = false,
   variant = 'danger',
   error,
@@ -61,14 +60,7 @@ export function ConfirmModal({
         </div>
       </div>
       {/* Error Display */}
-      {error && (
-        <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg animate-slideDown animate-shake">
-          <div className="flex items-start gap-2">
-            <ErrorCircleIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <p className="text-red-300 text-sm">{error}</p>
-          </div>
-        </div>
-      )}{' '}
+        <FormError message={error || null} className="mb-6" />
       <div className="flex justify-end">
         <Button
           variant="primary"

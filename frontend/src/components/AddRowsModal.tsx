@@ -1,6 +1,7 @@
 import {useState, type ReactElement} from 'react';
 import {ModalOverlay} from './ModalOverlay';
 import {Button} from './Button';
+import { ErrorDisplay } from './ErrorDisplay';
 
 type TableColumn = {
   name: string;
@@ -46,27 +47,24 @@ export function AddRowsModal({
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [jsonInput, setJsonInput] = useState<string>('');
   const [isModeTransitioning, setIsModeTransitioning] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  const resetForm = () => {
+  const handleClose = () => {
     setAddMode('web');
     setNewRows([{}]);
     setCsvFile(null);
     setJsonInput('');
     setIsModeTransitioning(false);
-  };
-
-  const handleClose = () => {
-    resetForm();
+    setLocalError(null);
     onClose();
   };
 
   const handleModeChange = (mode: AddMode) => {
-    if (mode === addMode) return;
-
     setIsModeTransitioning(true);
     setTimeout(() => {
       setAddMode(mode);
       setIsModeTransitioning(false);
+      setLocalError(null);
     }, 300);
   };
 
@@ -138,12 +136,17 @@ export function AddRowsModal({
   };
 
   const handleSubmit = async () => {
-    if (addMode === 'web') {
-      await handleSubmitWeb();
-    } else if (addMode === 'json') {
-      await handleSubmitJson();
-    } else {
-      await handleSubmitCsv();
+    setLocalError(null);
+    try {
+      if (addMode === 'web') {
+        await handleSubmitWeb();
+      } else if (addMode === 'json') {
+        await handleSubmitJson();
+      } else {
+        await handleSubmitCsv();
+      }
+    } catch (err: any) {
+      setLocalError(err?.message || 'Error desconocido');
     }
   };
 
@@ -164,9 +167,7 @@ export function AddRowsModal({
     >
       <div className="max-h-[80vh] flex flex-col">
         <ModalHeader selectedTable={selectedTable} onClose={handleClose} />
-
         <ModeTabs addMode={addMode} onModeChange={handleModeChange} />
-
         <ModalContent
           addMode={addMode}
           isModeTransitioning={isModeTransitioning}
@@ -174,14 +175,13 @@ export function AddRowsModal({
           selectedTableInfo={selectedTableInfo}
           jsonInput={jsonInput}
           csvFile={csvFile}
-          error={error}
+          error={localError || error}
           onAddRow={handleAddRow}
           onRemoveRow={handleRemoveRow}
           onRowFieldChange={handleRowFieldChange}
           onJsonInputChange={setJsonInput}
           onCsvFileChange={setCsvFile}
         />
-
         <ActionButtons
           isLoading={isLoading}
           isSubmitDisabled={isSubmitDisabled()}
@@ -360,7 +360,7 @@ function ModalContent({
   onCsvFileChange,
 }: ModalContentProps) {
   return (
-    <>
+    <div>
       <div
         className={`overflow-y-auto pr-2 flex-1 min-h-0 transition-opacity duration-300 ${
           isModeTransitioning ? 'opacity-0' : 'opacity-100'
@@ -387,10 +387,9 @@ function ModalContent({
         {addMode === 'csv' && (
           <CsvModeContent csvFile={csvFile} onCsvFileChange={onCsvFileChange} />
         )}
-
-        {error && <ErrorMessage message={error} />}
       </div>
-    </>
+      {error && <ErrorDisplay message={error} className="mt-4 mb-2" />}
+    </div>
   );
 }
 
@@ -663,30 +662,7 @@ function InfoBox({message}: {message: string}) {
   );
 }
 
-function ErrorMessage({message}: {message: string}) {
-  return (
-    <div className="mt-4 text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-sm animate-slideDown animate-shake">
-      <div className="flex items-start gap-3">
-        <svg
-          className="w-5 h-5 shrink-0 mt-0.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <div className="flex-1 whitespace-pre-wrap wrap-break-word">
-          {message}
-        </div>
-      </div>
-    </div>
-  );
-}
+
 
 type ActionButtonsProps = {
   isLoading: boolean;

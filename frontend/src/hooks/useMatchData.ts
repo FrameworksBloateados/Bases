@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useAuth} from '../context/AuthContext';
+import {API_ENDPOINTS} from '../utils/constants';
 import type {
   WhoAmIResponse,
   Match,
@@ -38,22 +39,22 @@ export function useMatchData() {
         const [matchesRes, teamsRes, playersRes, resultsRes, statsRes] =
           await Promise.all([
             authenticatedFetch(
-              'http://127-0-0-1.sslip.io/api/v1/matches/json',
+              API_ENDPOINTS.MATCHES,
               {method: 'GET'}
             ),
-            authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/teams/json', {
+            authenticatedFetch(API_ENDPOINTS.TEAMS, {
               method: 'GET',
             }),
             authenticatedFetch(
-              'http://127-0-0-1.sslip.io/api/v1/players/json',
+              API_ENDPOINTS.PLAYERS,
               {method: 'GET'}
             ),
             authenticatedFetch(
-              'http://127-0-0-1.sslip.io/api/v1/matches_results/json',
+              API_ENDPOINTS.MATCHES_RESULTS,
               {method: 'GET'}
             ),
             authenticatedFetch(
-              'http://127-0-0-1.sslip.io/api/v1/player_match_stats/json',
+              API_ENDPOINTS.PLAYER_MATCH_STATS,
               {method: 'GET'}
             ),
           ]);
@@ -93,7 +94,7 @@ export function useUserData() {
     try {
       setError(null);
       const userResponse = await authenticatedFetch(
-        'http://127-0-0-1.sslip.io/api/v1/user/whoami',
+        API_ENDPOINTS.WHO_AM_I,
         {method: 'GET'}
       );
       if (!userResponse.ok)

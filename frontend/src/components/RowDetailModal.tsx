@@ -1,4 +1,6 @@
 import {useState} from 'react';
+import {ModalOverlay, ModalHeader} from './ModalOverlay';
+import {Button} from './Button';
 
 type RowDetailModalProps = {
   isOpen: boolean;
@@ -78,46 +80,24 @@ export function RowDetailModal({
     setEditedValues({});
   };
 
-  if (!isOpen || !selectedRow) return null;
-
   return (
-    <div
-      className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
-        isClosing ? 'animate-fade-out' : 'animate-fade-in'
-      }`}
-      onClick={handleClose}
+    <ModalOverlay
+      isOpen={isOpen}
+      isClosing={isClosing}
+      onClose={handleClose}
+      maxWidth="2xl"
     >
-      <div
-        className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-2xl w-full max-h-[80vh] flex flex-col ${
-          isClosing ? 'animate-scale-out' : 'animate-scale-in'
-        }`}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="flex justify-between items-start mb-6 shrink-0">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-2">
-              Detalles del registro
-            </h2>
-            <p className="text-slate-400 text-sm">
-              Tabla:{' '}
-              <span className="font-semibold text-blue-400">
-                {selectedTable}
-              </span>
-            </p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-slate-400 hover:text-white text-2xl transition-colors duration-200"
-          >
-            ×
-          </button>
-        </div>
+      <div className="max-h-[70vh] flex flex-col">
+        <ModalHeader
+          title="Detalles del registro"
+          subtitle={`Tabla: ${selectedTable}`}
+          onClose={handleClose}
+        />
 
         {/* Modal Content */}
         <div className="overflow-y-auto pr-2 flex-1 min-h-0">
           <div className="space-y-3">
-            {Object.entries(selectedRow).map(([key, value]) => {
+            {selectedRow && Object.entries(selectedRow).map(([key, value]) => {
               const isEditable = editableFields.has(key);
               const currentValue =
                 isEditable && editedValues.hasOwnProperty(key)
@@ -302,45 +282,18 @@ export function RowDetailModal({
         {/* Save Button */}
         {editableFields.size > 0 && (
           <div className="mt-6 pt-4 border-t border-white/10 shrink-0">
-            <button
+            <Button
               onClick={handleSave}
               disabled={isSaving || !hasRealChanges()}
-              className={`w-full px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-all duration-300 whitespace-nowrap ${
-                isSaving || !hasRealChanges()
-                  ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50 scale-95'
-                  : 'text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 hover:shadow-xl active:scale-99 opacity-100 scale-100'
-              }`}
+              isLoading={isSaving}
+              variant="gradient"
+              className="w-full"
             >
-              {isSaving ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg
-                    className="animate-spin h-5 w-5 shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Guardando...
-                </span>
-              ) : (
-                'Guardar cambios'
-              )}
-            </button>
+              Guardar cambios
+            </Button>
           </div>
         )}
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

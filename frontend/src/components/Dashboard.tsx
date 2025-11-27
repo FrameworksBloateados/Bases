@@ -2,6 +2,7 @@ import {useState, useEffect} from 'react';
 import {useNavigate} from 'react-router';
 import {useAuth} from '../context/AuthContext';
 import {useUserData} from '../hooks/useMatchData';
+import {getTableEndpoint, ERROR_MESSAGES, API_ENDPOINTS} from '../utils/constants';
 import {LoadingSpinner} from './LoadingSpinner';
 import {BackButton} from './BackButton';
 import {ChangePasswordModal} from './ChangePasswordModal';
@@ -89,12 +90,12 @@ export function Dashboard() {
     setError(null);
     try {
       const response = await authenticatedFetch(
-        'http://127-0-0-1.sslip.io/api/v1/tables',
+        API_ENDPOINTS.TABLES,
         {
           method: 'GET',
         }
       );
-      if (!response.ok) throw new Error('Error al cargar las tablas');
+      if (!response.ok) throw new Error(ERROR_MESSAGES.LOAD_TABLES);
       const data: TableInfo[] = await response.json();
       setTables(data);
       if (data.length > 0 && data[0]) {
@@ -112,11 +113,11 @@ export function Dashboard() {
     setError(null);
     try {
       const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${tableName}/json`,
+        getTableEndpoint(tableName),
         {method: 'GET'}
       );
       if (!response.ok)
-        throw new Error('Error al cargar los datos de la tabla');
+        throw new Error(ERROR_MESSAGES.LOAD_TABLE_DATA);
       const data: TableData = await response.json();
       const sortedData = data.sort((a, b) => {
         if (a.id && b.id) return a.id - b.id;
@@ -165,7 +166,7 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/${selectedRow.id}/json`,
+        `${getTableEndpoint(selectedTable).replace('/json', '')}/${selectedRow.id}/json`,
         {
           method: 'PUT',
           headers: {
@@ -192,7 +193,7 @@ export function Dashboard() {
       const errorMsg =
         err instanceof Error
           ? err.message
-          : 'Error desconocido al guardar los cambios';
+          : ERROR_MESSAGES.SAVE_CHANGES;
       setRowModalError(errorMsg);
       console.error('Error in handleSaveRowChanges:', err);
     } finally {
@@ -232,7 +233,7 @@ export function Dashboard() {
     try {
       const deletePromises = Array.from(selectedRows).map(id =>
         authenticatedFetch(
-          `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/${id}`,
+          `${getTableEndpoint(selectedTable).replace('/json', '')}/${id}`,
           {method: 'DELETE'}
         )
       );
@@ -262,7 +263,7 @@ export function Dashboard() {
       const errorMsg =
         err instanceof Error
           ? err.message
-          : 'Error desconocido al eliminar los registros';
+          : ERROR_MESSAGES.DELETE_RECORDS;
       setDeleteError(errorMsg);
       console.error('Error in handleDeleteSelected:', err);
     } finally {
@@ -279,7 +280,7 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        'http://127-0-0-1.sslip.io/api/v1/user/changePassword',
+        API_ENDPOINTS.CHANGE_PASSWORD,
         {
           method: 'POST',
           headers: {
@@ -308,7 +309,7 @@ export function Dashboard() {
       const errorMsg =
         err instanceof Error
           ? err.message
-          : 'Error desconocido al cambiar la contraseña';
+          : ERROR_MESSAGES.CHANGE_PASSWORD;
       setPasswordError(errorMsg);
       console.error('Error in handleChangePassword:', err);
     } finally {
@@ -322,7 +323,7 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        'http://127-0-0-1.sslip.io/api/v1/user/changeEmail',
+        API_ENDPOINTS.CHANGE_EMAIL,
         {
           method: 'POST',
           headers: {
@@ -352,7 +353,7 @@ export function Dashboard() {
       const errorMsg =
         err instanceof Error
           ? err.message
-          : 'Error desconocido al cambiar el email';
+          : ERROR_MESSAGES.CHANGE_EMAIL;
       setEmailError(errorMsg);
       console.error('Error in handleChangeEmail:', err);
     } finally {
@@ -366,7 +367,7 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/json`,
+        getTableEndpoint(selectedTable),
         {
           method: 'POST',
           headers: {
@@ -396,7 +397,7 @@ export function Dashboard() {
       const errorMsg =
         err instanceof Error
           ? err.message
-          : 'Error desconocido al agregar las filas';
+          : ERROR_MESSAGES.ADD_ROWS;
       setModalError(errorMsg);
       console.error('Error in handleSubmitWebRows:', err);
     } finally {
@@ -410,7 +411,7 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/json`,
+        getTableEndpoint(selectedTable),
         {
           method: 'POST',
           headers: {
@@ -440,7 +441,7 @@ export function Dashboard() {
       const errorMsg =
         err instanceof Error
           ? err.message
-          : 'Error desconocido al procesar el JSON';
+          : ERROR_MESSAGES.PROCESS_JSON;
       setModalError(errorMsg);
       console.error('Error in handleSubmitJsonRows:', err);
     } finally {
@@ -457,7 +458,7 @@ export function Dashboard() {
       formData.append('file', file);
 
       const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/csv`,
+        `${getTableEndpoint(selectedTable).replace('/json', '/csv')}`,
         {
           method: 'POST',
           body: formData,
@@ -484,7 +485,7 @@ export function Dashboard() {
       const errorMsg =
         err instanceof Error
           ? err.message
-          : 'Error desconocido al procesar el archivo CSV';
+          : ERROR_MESSAGES.PROCESS_CSV;
       setModalError(errorMsg);
       console.error('Error in handleSubmitCsvFile:', err);
     } finally {
@@ -661,7 +662,7 @@ export function Dashboard() {
           selectedRows.size === 1 ? 'registro' : 'registros'
         }? <b>Esta acción no se puede deshacer.</b>`}
         confirmText="Sí, eliminar"
-        cancelText="Cancelar"
+        cancelText="Abortar"
         isLoading={isDeleting}
         variant="danger"
         error={deleteError}

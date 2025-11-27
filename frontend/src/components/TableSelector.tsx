@@ -1,4 +1,6 @@
 import {useState} from 'react';
+import {useDropdownAnimation} from '../hooks/useDropdownAnimation';
+import {ChevronDownIcon} from './Icons';
 
 type TableInfo = {
   name: string;
@@ -21,29 +23,16 @@ export function TableSelector({
   selectedTable,
   onTableChange,
 }: TableSelectorProps) {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-
-  const toggleDropdown = () => {
-    if (showDropdown) {
-      setIsClosing(true);
-      setTimeout(() => {
-        setShowDropdown(false);
-        setIsClosing(false);
-      }, 200);
-    } else {
-      setShowDropdown(true);
-    }
-  };
+  const {isOpen: showDropdown, isClosing, toggle: toggleDropdown, close} = useDropdownAnimation();
 
   const handleTableChange = (tableName: string) => {
     if (tableName === selectedTable) {
-      setShowDropdown(false);
+      close();
       return;
     }
 
     onTableChange(tableName);
-    setShowDropdown(false);
+    close();
   };
 
   return (
@@ -53,21 +42,11 @@ export function TableSelector({
         className="px-4 py-2 text-sm font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 flex items-center gap-2 min-w-[200px] justify-between"
       >
         <span className="truncate">{selectedTable || 'Seleccionar tabla'}</span>
-        <svg
+        <ChevronDownIcon
           className={`w-4 h-4 transition-transform duration-300 ${
             showDropdown && !isClosing ? 'rotate-180' : ''
           }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        />
       </button>
 
       {showDropdown && (

@@ -1,5 +1,7 @@
 import {useState} from 'react';
 import type {WhoAmIResponse} from '../types/match.types';
+import {useDropdownAnimation} from '../hooks/useDropdownAnimation';
+import {ChevronDownIcon} from './Icons';
 
 type HeaderProps = {
   userInfo: WhoAmIResponse | null;
@@ -7,26 +9,11 @@ type HeaderProps = {
 };
 
 export function Header({userInfo, onLogout}: HeaderProps) {
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-
-  const handleToggleMenu = () => {
-    if (showUserMenu) {
-      setIsClosing(true);
-      setTimeout(() => {
-        setShowUserMenu(false);
-        setIsClosing(false);
-      }, 200); // Duración de la animación
-    } else {
-      setShowUserMenu(true);
-    }
-  };
+  const {isOpen: showUserMenu, isClosing, toggle: handleToggleMenu, close} = useDropdownAnimation();
 
   const handleLogout = () => {
-    setIsClosing(true);
+    close();
     setTimeout(() => {
-      setShowUserMenu(false);
-      setIsClosing(false);
       onLogout();
     }, 200);
   };
@@ -118,21 +105,11 @@ function UserMenu({
         onClick={onToggleMenu}
         className="px-4 py-2 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-600 rounded-lg shadow-lg transition-colors duration-300 active:scale-99 flex items-center gap-2"
       >
-        <svg
+        <ChevronDownIcon
           className={`w-4 h-4 transition-transform duration-300 ${
             showMenu && !isClosing ? 'rotate-180' : ''
           }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        />
       </button>
 
       {showMenu && (

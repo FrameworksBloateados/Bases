@@ -2,6 +2,7 @@ import './index.css';
 import {useState} from 'react';
 import {useAuth} from './context/AuthContext';
 import {useMatchData, useUserData} from './hooks/useMatchData';
+import {API_ENDPOINTS, ERROR_MESSAGES} from './utils/constants';
 import {
   enrichMatches,
   filterFinishedMatchesWithResults,
@@ -60,7 +61,7 @@ export function App() {
   const handleBet = async (matchId: number, teamId: number, amount: number) => {
     try {
       const response = await authenticatedFetch(
-        'http://127-0-0-1.sslip.io/api/v1/bet',
+        API_ENDPOINTS.BET,
         {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
@@ -75,9 +76,9 @@ export function App() {
       if (!response.ok) {
         const errorData = await response
           .json()
-          .catch(() => ({error: 'Error desconocido'}));
+          .catch(() => ({error: ERROR_MESSAGES.UNKNOWN}));
         // Solo lanzar el mensaje de error, sin el prefijo
-        throw new Error(errorData.error || 'Error al realizar la apuesta');
+        throw new Error(errorData.error || ERROR_MESSAGES.PLACE_BET);
       }
 
       await refetchUserInfo();

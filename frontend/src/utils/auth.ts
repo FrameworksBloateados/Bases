@@ -1,4 +1,6 @@
 import {logger} from './logger';
+import {API_ENDPOINTS} from './constants';
+import {HttpError, parseErrorFromText} from './errorHandling';
 
 export const login = async ({
   username,
@@ -7,7 +9,7 @@ export const login = async ({
   username: string;
   password: string;
 }) => {
-  const response = await fetch('http://127-0-0-1.sslip.io/api/v1/auth/login', {
+  const response = await fetch(API_ENDPOINTS.LOGIN, {
     method: 'POST',
     body: JSON.stringify({username, password}),
     headers: {
@@ -18,15 +20,7 @@ export const login = async ({
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = 'Error desconocido';
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.message || errorJson.error || errorMessage;
-    } catch {
-      errorMessage = errorText || errorMessage;
-    }
-
+    const errorMessage = parseErrorFromText(errorText);
     throw new HttpError(response.status, errorMessage);
   }
 
@@ -44,7 +38,7 @@ export const register = async ({
   email: string;
 }) => {
   const response = await fetch(
-    'http://127-0-0-1.sslip.io/api/v1/auth/register',
+    API_ENDPOINTS.REGISTER,
     {
       method: 'POST',
       body: JSON.stringify({username, email, password}),
@@ -57,15 +51,7 @@ export const register = async ({
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = 'Error desconocido';
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.message || errorJson.error || errorMessage;
-    } catch {
-      errorMessage = errorText || errorMessage;
-    }
-
+    const errorMessage = parseErrorFromText(errorText);
     throw new HttpError(response.status, errorMessage);
   }
 
@@ -74,29 +60,21 @@ export const register = async ({
 };
 
 export const logout = async () => {
-  const response = await fetch(`http://127-0-0-1.sslip.io/api/v1/auth/logout`, {
+  const response = await fetch(API_ENDPOINTS.LOGOUT, {
     method: 'POST',
     credentials: 'include',
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = 'Error desconocido';
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.message || errorJson.error || errorMessage;
-    } catch {
-      errorMessage = errorText || errorMessage;
-    }
-
+    const errorMessage = parseErrorFromText(errorText);
     throw new HttpError(response.status, errorMessage);
   }
 };
 
 export const refreshToken = async () => {
   const response = await fetch(
-    `http://127-0-0-1.sslip.io/api/v1/auth/refresh`,
+    API_ENDPOINTS.REFRESH,
     {
       method: 'POST',
       credentials: 'include',
@@ -105,29 +83,12 @@ export const refreshToken = async () => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = 'Error desconocido';
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.message || errorJson.error || errorMessage;
-    } catch {
-      errorMessage = errorText || errorMessage;
-    }
-
+    const errorMessage = parseErrorFromText(errorText);
     throw new HttpError(response.status, errorMessage);
   }
 
   const {accessToken} = await response.json();
   return accessToken;
-};
-
-export class HttpError extends Error {
-  status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
 }
 
 export const authenticatedFetch = async (
@@ -148,15 +109,7 @@ export const authenticatedFetch = async (
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = 'Error desconocido';
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.message || errorJson.error || errorMessage;
-    } catch {
-      errorMessage = errorText || errorMessage;
-    }
-
+    const errorMessage = parseErrorFromText(errorText);
     throw new HttpError(response.status, errorMessage);
   }
 

@@ -200,7 +200,7 @@ type TeamStatsProps = {
 
 function TeamStats({team, players, playerStats}: TeamStatsProps) {
   return (
-    <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
+    <div className="bg-slate-900/50 rounded-xl p-4 border border-white/10">
       <h3 className="text-xl font-bold text-white mb-4 text-center flex items-center justify-center gap-2">
         {team?.image_url && (
           <img
@@ -324,7 +324,7 @@ type StreamingSectionProps = {
 
 function StreamingSection({username}: StreamingSectionProps) {
   return (
-    <div className="mb-6 p-6 bg-slate-900/50 rounded-xl border border-white/10">
+    <div className="mb-6 p-4 bg-slate-900/50 rounded-xl border border-white/10">
       <h3 className="text-lg font-semibold text-white mb-4 text-center">
         🎥 Transmisión en vivo
       </h3>

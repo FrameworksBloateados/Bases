@@ -1,4 +1,6 @@
 import {useState, type ReactElement} from 'react';
+import {ModalOverlay} from './ModalOverlay';
+import {Button} from './Button';
 
 type TableColumn = {
   name: string;
@@ -153,21 +155,14 @@ export function AddRowsModal({
     return false;
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
-        isClosing ? 'animate-fade-out' : 'animate-fade-in'
-      }`}
-      onClick={handleClose}
+    <ModalOverlay
+      isOpen={isOpen}
+      isClosing={isClosing}
+      onClose={handleClose}
+      maxWidth="2xl"
     >
-      <div
-        className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-4xl w-full max-h-[90vh] flex flex-col ${
-          isClosing ? 'animate-scale-out' : 'animate-scale-in'
-        }`}
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="max-h-[80vh] flex flex-col">
         <ModalHeader selectedTable={selectedTable} onClose={handleClose} />
 
         <ModeTabs addMode={addMode} onModeChange={handleModeChange} />
@@ -194,7 +189,7 @@ export function AddRowsModal({
           onSubmit={handleSubmit}
         />
       </div>
-    </div>
+    </ModalOverlay>
   );
 }
 
@@ -708,49 +703,15 @@ function ActionButtons({
 }: ActionButtonsProps) {
   return (
     <div className="mt-6 pt-4 border-t border-white/10 shrink-0 flex gap-3 justify-end">
-      <button
-        onClick={onCancel}
-        disabled={isLoading}
-        className="px-4 py-2 text-sm font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99"
-      >
-        Cancelar
-      </button>
-      <button
+      <Button
         onClick={onSubmit}
         disabled={isSubmitDisabled}
-        className={`px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-colors duration-300 ${
-          isSubmitDisabled
-            ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50'
-            : 'text-white bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:shadow-xl active:scale-99'
-        }`}
+        isLoading={isLoading}
+        variant="gradient"
+        className="bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
       >
-        {isLoading ? (
-          <span className="flex items-center gap-2">
-            <svg
-              className="animate-spin h-4 w-4 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Agregando...
-          </span>
-        ) : (
-          'Insertar'
-        )}
-      </button>
+        Insertar
+      </Button>
     </div>
   );
 }

@@ -1,4 +1,8 @@
 import {useState} from 'react';
+import {ERROR_MESSAGES} from '../utils/constants';
+import {useModalState} from '../hooks/useModalState';
+import {ModalOverlay, ModalHeader} from './ModalOverlay';
+import {Button} from './Button';
 
 type BetModalProps = {
   matchId: number;
@@ -21,14 +25,12 @@ export function BetModal({
 }: BetModalProps) {
   const [betAmount, setBetAmount] = useState<string>('');
   const [betError, setBetError] = useState<string | null>(null);
-  const [isClosing, setIsClosing] = useState(false);
+  const {isClosing, close} = useModalState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-    }, 300);
+    close();
+    setTimeout(onClose, 300);
   };
 
   const handleConfirm = async () => {
@@ -52,7 +54,7 @@ export function BetModal({
       handleClose();
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Error desconocido';
+        err instanceof Error ? err.message : ERROR_MESSAGES.UNKNOWN;
       setBetError(errorMessage);
     } finally {
       setIsProcessing(false);
@@ -73,45 +75,33 @@ export function BetModal({
   };
 
   return (
-    <div
-      className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
-        isClosing ? 'animate-fade-out' : 'animate-fade-in'
-      }`}
-      onClick={handleClose}
-    >
-      <div
-        className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-md w-full ${
-          isClosing ? 'animate-scale-out' : 'animate-scale-in'
-        }`}
-        onClick={e => e.stopPropagation()}
-      >
-        <ModalHeader teamName={teamName} onClose={handleClose} />
+    <ModalOverlay isOpen={true} isClosing={isClosing} onClose={handleClose}>
+      <BetModalHeader teamName={teamName} onClose={handleClose} />
 
-        <BetAmountInput
-          value={betAmount}
-          userBalance={userBalance}
-          onChange={handleAmountChange}
-          onKeyDown={handleKeyDown}
-        />
+      <BetAmountInput
+        value={betAmount}
+        userBalance={userBalance}
+        onChange={handleAmountChange}
+        onKeyDown={handleKeyDown}
+      />
 
-        {betError && <ErrorMessage message={betError} />}
+      {betError && <ErrorMessage message={betError} />}
 
-        <ActionButtons
-          onCancel={handleClose}
-          onConfirm={handleConfirm}
-          isProcessing={isProcessing}
-        />
-      </div>
-    </div>
+      <ActionButtons
+        onCancel={handleClose}
+        onConfirm={handleConfirm}
+        isProcessing={isProcessing}
+      />
+    </ModalOverlay>
   );
 }
 
-type ModalHeaderProps = {
+type BetModalHeaderProps = {
   teamName: string;
   onClose: () => void;
 };
 
-function ModalHeader({teamName, onClose}: ModalHeaderProps) {
+function BetModalHeader({teamName, onClose}: BetModalHeaderProps) {
   return (
     <div className="flex justify-between items-start mb-6">
       <div>
@@ -191,20 +181,17 @@ function ActionButtons({
 }: ActionButtonsProps) {
   return (
     <div className="flex gap-3">
-      <button
-        onClick={onCancel}
-        disabled={isProcessing}
-        className="flex-1 px-4 py-3 bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-      >
+      <Button variant="secondary" onClick={onCancel} disabled={isProcessing}>
         Cancelar
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="gradient"
         onClick={onConfirm}
-        disabled={isProcessing}
-        className="flex-1 px-4 py-3 bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        isLoading={isProcessing}
+        className="flex-1"
       >
-        {isProcessing ? 'Procesando...' : 'Confirmar apuesta'}
-      </button>
+        Confirmar apuesta
+      </Button>
     </div>
   );
 }

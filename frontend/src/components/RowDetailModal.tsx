@@ -8,6 +8,7 @@ type RowDetailModalProps = {
   onClose: () => void;
   onSave: (editedValues: Record<string, any>) => Promise<void>;
   isSaving: boolean;
+  error?: string | null;
 };
 
 export function RowDetailModal({
@@ -18,6 +19,7 @@ export function RowDetailModal({
   onClose,
   onSave,
   isSaving,
+  error,
 }: RowDetailModalProps) {
   const [editableFields, setEditableFields] = useState<Set<string>>(new Set());
   const [editedValues, setEditedValues] = useState<Record<string, any>>({});
@@ -274,6 +276,28 @@ export function RowDetailModal({
             })}
           </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg shrink-0">
+            <div className="flex items-start gap-2">
+              <svg
+                className="w-5 h-5 text-red-400 shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <p className="text-red-300 text-sm">{error}</p>
+            </div>
+          </div>
+        )}
 
         {/* Save Button */}
         {editableFields.size > 0 && (

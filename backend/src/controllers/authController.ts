@@ -28,13 +28,13 @@ export const registerHandler = async (c: Context) => {
     const password = (body?.password || '').toString();
 
     if (!username || !email || !password)
-      return badRequest(c, 'Username, email and password are required');
+      return badRequest(c, 'El nombre de usuario, email y contraseña son requeridos');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      return badRequest(c, 'Invalid email format');
+      return badRequest(c, 'Formato de email inválido');
     if (password.length < 8)
-      return badRequest(c, 'Password must be at least 8 characters');
+      return badRequest(c, 'La contraseña debe tener al menos 8 caracteres');
     if ((await findUserByUsername(username)) || (await findUserByEmail(email)))
-      return conflict(c, 'Username or email already in use');
+      return conflict(c, 'El nombre de usuario o email ya está en uso');
 
     const passwordHash = await Bun.password.hash(password);
     const user = await addUser({username, email, passwordHash});
@@ -60,10 +60,10 @@ export const loginHandler = async (c: Context) => {
     const password = (body?.password || '').toString();
 
     if (!username || !password)
-      return badRequest(c, 'Username and password are required');
+      return badRequest(c, 'El nombre de usuario y contraseña son requeridos');
     const user = await findUserByUsername(username);
     if (!user || !(await Bun.password.verify(password, user.password_hash)))
-      return unauthorized(c, "Invalid username or password");
+      return unauthorized(c, "Nombre de usuario o contraseña inválidos");
 
     const userId = user.id.toString();
     const admin = user.admin;
@@ -98,7 +98,7 @@ const refreshAccessToken = async (c: Context) => {
 
     const payload = await getRefreshTokenPayload(refreshToken, fingerprint);
     const user = await getUserFromPayload(payload);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error('Usuario no encontrado');
 
     const accessToken = await regenerateAccessToken(
       user.id.toString(),
@@ -116,7 +116,7 @@ const refreshAccessToken = async (c: Context) => {
       accessToken,
     };
   } catch (err: any) {
-    const errorMessage = 'Error refreshing access token';
+    const errorMessage = 'Error al refrescar el token de acceso';
     console.error(`${errorMessage}:`, err);
     throw new Error(errorMessage);
   }
@@ -126,7 +126,7 @@ export const logoutHandler = async (c: Context) => {
   try {
     deleteCookie(c, `${cookieNamePrefix}JWT`);
     deleteCookie(c, `${cookieNamePrefix}Fgp`);
-    return c.json({message: 'Logged out successfully'});
+    return c.json({message: 'Sesión cerrada exitosamente'});
   } catch (err: any) {
     console.error('Error occurred during logout:', err);
     return internalServerError(c);

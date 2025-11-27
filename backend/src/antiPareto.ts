@@ -119,7 +119,7 @@ const createGenericAPICrudForTheAntiParetoRule = async (
     const result = await sql`SELECT * FROM ${sql(APIRoute)} WHERE id = ${id}`;
     if (result.length === 0) {
       return c.json(
-        {message: `Record not found in ${APIRoute} with id ${id}`},
+        {message: `Registro no encontrado en ${APIRoute} con id ${id}`},
         404
       );
     }
@@ -135,9 +135,9 @@ const createGenericAPICrudForTheAntiParetoRule = async (
     try {
       const body = await c.req.json();
       await insertData(body);
-      return c.json({message: `POST request to ${APIRoute}`});
+      return c.json({message: `Solicitud POST exitosa a ${APIRoute}`});
     } catch (error) {
-      return c.json({message: `Invalid request for POST ${APIRoute}`}, 400);
+      return c.json({message: `Solicitud inválida para POST ${APIRoute}`}, 400);
     }
   });
 
@@ -148,9 +148,9 @@ const createGenericAPICrudForTheAntiParetoRule = async (
       const csv = body['file'] as File;
       const json = csvToJson.csvStringToJson(await csv.text());
       await insertData(json);
-      return c.json({message: `POST request to ${APIRoute}`});
+      return c.json({message: `Solicitud POST exitosa a ${APIRoute}`});
     } catch (error) {
-      return c.json({message: `Invalid request for POST ${APIRoute}`}, 400);
+      return c.json({message: `Solicitud inválida para POST ${APIRoute}`}, 400);
     }
   });
 
@@ -160,16 +160,39 @@ const createGenericAPICrudForTheAntiParetoRule = async (
       const {id} = c.req.param();
       const body = await c.req.json();
       await sql`UPDATE ${sql(APIRoute)} SET ${sql(body)} WHERE id = ${id}`;
-      return c.json({message: `PUT request to ${APIRoute} with id ${id}`});
+      return c.json({message: `Solicitud PUT exitosa a ${APIRoute} con id ${id}`});
     } catch (error) {
-      return c.json({message: `Invalid request body for PUT ${APIRoute}`}, 400);
+      return c.json({message: `Cuerpo de solicitud inválido para PUT ${APIRoute}`}, 400);
     }
   });
 
   App.delete(`/${APIRoute}/:id`, deleteDoc.describer, async c => {
     if (!isPublicDelete && !c.user.admin) return forbidden(c);
     const {id} = c.req.param();
-    await sql`DELETE FROM ${sql(APIRoute)} WHERE id = ${id}`;
-    return c.json({message: `DELETE request to ${APIRoute} with id ${id}`});
+    try {
+      const result = await sql`SELECT * FROM ${sql(APIRoute)} WHERE id = ${id}`;
+      if (result.length === 0) {
+        return c.json(
+          {message: `Registro no encontrado en ${APIRoute} con id ${id}`},
+          404
+        );
+      }
+      await sql`DELETE FROM ${sql(APIRoute)} WHERE id = ${id}`;
+    } catch (error) {
+      console.error(error);
+      if ((error as any).errno === '23503') {
+        return c.json(
+          {
+            message: `No se puede eliminar el registro en ${APIRoute} con id ${id} porque todavía está referenciado en otros registros.`,
+          },
+          400
+        );
+      }
+      return c.json(
+        {message: `Error al verificar el registro en ${APIRoute} con id ${id}`},
+        500
+      );
+    }
+    return c.json({message: `Solicitud DELETE exitosa a ${APIRoute} con id ${id}`});
   });
 };

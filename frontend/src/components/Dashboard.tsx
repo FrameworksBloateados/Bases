@@ -46,11 +46,13 @@ export function Dashboard() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleteModalClosing, setIsDeleteModalClosing] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isAddModalClosing, setIsAddModalClosing] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [rowModalError, setRowModalError] = useState<string | null>(null);
 
   // Password change states
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -143,6 +145,7 @@ export function Dashboard() {
   const handleRowClick = (row: Record<string, any>) => {
     setSelectedRow(row);
     setIsModalClosing(false);
+    setRowModalError(null);
   };
 
   const handleCloseModal = () => {
@@ -150,6 +153,7 @@ export function Dashboard() {
     setTimeout(() => {
       setSelectedRow(null);
       setIsModalClosing(false);
+      setRowModalError(null);
     }, 300);
   };
 
@@ -157,7 +161,7 @@ export function Dashboard() {
     if (!selectedRow || !selectedRow.id) return;
 
     setIsSaving(true);
-    setError(null);
+    setRowModalError(null);
 
     try {
       const response = await authenticatedFetch(
@@ -189,7 +193,7 @@ export function Dashboard() {
         err instanceof Error
           ? err.message
           : 'Error desconocido al guardar los cambios';
-      setError(errorMsg);
+      setRowModalError(errorMsg);
       console.error('Error in handleSaveRowChanges:', err);
     } finally {
       setIsSaving(false);
@@ -222,14 +226,8 @@ export function Dashboard() {
   const handleDeleteSelected = async () => {
     if (selectedRows.size === 0) return;
 
-    setIsDeleteModalClosing(true);
-    setTimeout(() => {
-      setShowDeleteConfirm(false);
-      setIsDeleteModalClosing(false);
-    }, 300);
-
     setIsDeleting(true);
-    setError(null);
+    setDeleteError(null);
 
     try {
       const deletePromises = Array.from(selectedRows).map(id =>
@@ -252,12 +250,20 @@ export function Dashboard() {
 
       await fetchTableData(selectedTable);
       setSelectedRows(new Set());
+      
+      // Solo cerrar el modal si la eliminación fue exitosa
+      setIsDeleteModalClosing(true);
+      setTimeout(() => {
+        setShowDeleteConfirm(false);
+        setIsDeleteModalClosing(false);
+        setDeleteError(null);
+      }, 300);
     } catch (err) {
       const errorMsg =
         err instanceof Error
           ? err.message
           : 'Error desconocido al eliminar los registros';
-      setError(errorMsg);
+      setDeleteError(errorMsg);
       console.error('Error in handleDeleteSelected:', err);
     } finally {
       setIsDeleting(false);
@@ -622,7 +628,10 @@ export function Dashboard() {
                     selectedRows={selectedRows}
                     onToggleRowSelection={toggleRowSelection}
                     onToggleSelectAll={toggleSelectAll}
-                    onDeleteSelected={() => setShowDeleteConfirm(true)}
+                    onDeleteSelected={() => {
+                      setDeleteError(null);
+                      setShowDeleteConfirm(true);
+                    }}
                     onShowAddModal={() => setShowAddModal(true)}
                     isDeleting={isDeleting}
                     isTransitioning={isTransitioning}
@@ -643,6 +652,7 @@ export function Dashboard() {
           setTimeout(() => {
             setShowDeleteConfirm(false);
             setIsDeleteModalClosing(false);
+            setDeleteError(null);
           }, 300);
         }}
         onConfirm={handleDeleteSelected}
@@ -654,6 +664,7 @@ export function Dashboard() {
         cancelText="Cancelar"
         isLoading={isDeleting}
         variant="danger"
+        error={deleteError}
       />
 
       <AddRowsModal
@@ -716,6 +727,7 @@ export function Dashboard() {
         onClose={handleCloseModal}
         onSave={handleSaveRowChanges}
         isSaving={isSaving}
+        error={rowModalError}
       />
     </div>
   );

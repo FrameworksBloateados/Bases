@@ -9,6 +9,7 @@ type ConfirmModalProps = {
   cancelText?: string;
   isLoading?: boolean;
   variant?: 'danger' | 'warning' | 'info';
+  error?: string | null;
 };
 
 export function ConfirmModal({
@@ -22,6 +23,7 @@ export function ConfirmModal({
   cancelText = 'Cancelar',
   isLoading = false,
   variant = 'danger',
+  error,
 }: ConfirmModalProps) {
   if (!isOpen) return null;
 
@@ -79,6 +81,28 @@ export function ConfirmModal({
             />
           </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="flex items-start gap-2">
+              <svg
+                className="w-5 h-5 text-red-400 shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <p className="text-red-300 text-sm">{error}</p>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-3 justify-end">
           <button

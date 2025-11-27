@@ -13,14 +13,14 @@ function extractBearerToken(header?: string): string | null {
 
 const authenticateAccessToken = async (c: Context) => {
   const fingerprint = getCookie(c, `${cookieNamePrefix}Fgp`);
-  if (!fingerprint) throw new Error('Missing fingerprint cookie');
+  if (!fingerprint) throw new Error('Falta la cookie de huella digital');
 
   const accessToken = extractBearerToken(c.req.header?.('authorization'));
-  if (!accessToken) throw new Error('Missing access token');
+  if (!accessToken) throw new Error('Falta el token de acceso');
 
   const payload = await getAccessTokenPayload(accessToken, fingerprint);
   const user = await getUserFromPayload(payload);
-  if (!user) throw new Error('User not found');
+  if (!user) throw new Error('Usuario no encontrado');
 
   c.user = {
     id: user.id,

@@ -15,9 +15,9 @@ export const changePasswordHandler = async (c: Context) => {
     const actualPassword = (body?.actualPassword || '').toString();
     const newPassword = (body?.newPassword || '').toString();
     if (!actualPassword || !newPassword)
-      return badRequest(c, 'Both passwords are required');
+      return badRequest(c, 'Ambas contraseñas son requeridas');
     if (newPassword.length < 8)
-      return badRequest(c, 'New password must be at least 8 characters');
+      return badRequest(c, 'La nueva contraseña debe tener al menos 8 caracteres');
 
     const user = await findUserById(c.user.id);
     if (
@@ -27,7 +27,7 @@ export const changePasswordHandler = async (c: Context) => {
       return unauthorized(c);
 
     await user.updatePassword(newPassword);
-    return c.json({message: 'Password changed successfully'});
+    return c.json({message: 'Contraseña cambiada exitosamente'});
   } catch (err: any) {
     console.error('Error occurred during password change:', err);
     return internalServerError(c);
@@ -40,9 +40,9 @@ export const changeEmailHandler = async (c: Context) => {
     const password = (body?.password || '').toString();
     const newEmail = (body?.newEmail || '').toString();
     if (!password || !newEmail)
-      return badRequest(c, 'Both password and new email are required');
+      return badRequest(c, 'La contraseña y el nuevo email son requeridos');
     if (!newEmail.includes('@'))
-      return badRequest(c, 'Invalid email format');
+      return badRequest(c, 'Formato de email inválido');
 
     const user = await findUserById(c.user.id);
     if (!user || !(await Bun.password.verify(password, user.password_hash)))
@@ -50,10 +50,10 @@ export const changeEmailHandler = async (c: Context) => {
 
     const existingUser = await findUserByEmail(newEmail);
     if (existingUser)
-      return badRequest(c, 'Email already in use');
+      return badRequest(c, 'El email ya está en uso');
 
     await user.updateEmail(newEmail);
-    return c.json({message: 'Email changed successfully'});
+    return c.json({message: 'Email cambiado exitosamente'});
   } catch (err: any) {
     console.error('Error occurred during email change:', err);
     return internalServerError(c);

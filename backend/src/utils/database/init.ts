@@ -9,8 +9,8 @@ export async function initDatabase() {
       email VARCHAR(255) UNIQUE NOT NULL,
       password_hash VARCHAR(255) NOT NULL,
       balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `;
 
@@ -35,7 +35,7 @@ export async function initDatabase() {
       id SERIAL PRIMARY KEY,
       team_a_id INTEGER REFERENCES teams(id),
       team_b_id INTEGER REFERENCES teams(id),
-      match_date TIMESTAMP NOT NULL,
+      match_date TIMESTAMPTZ NOT NULL,
       streaming_platform VARCHAR(10) CHECK (streaming_platform IN ('KICK')),
       streaming_username VARCHAR(255)
     );
@@ -70,7 +70,7 @@ export async function initDatabase() {
       match_id INTEGER REFERENCES matches(id),
       team_id INTEGER REFERENCES teams(id),
       amount DECIMAL(10, 2) NOT NULL,
-      placed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      placed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
   `;
 }

@@ -1,8 +1,17 @@
 import {useState, useEffect} from 'react';
 import {useNavigate} from 'react-router';
 import {useAuth} from '../context/AuthContext';
-import {useUserData} from '../hooks/useMatchData';
+import {useUserData, useMatchData} from '../hooks/useMatchData';
+import {useModalState} from '../hooks/useModalState';
+import {
+  getTableEndpoint,
+  ERROR_MESSAGES,
+  API_ENDPOINTS,
+} from '../utils/constants';
+import {parseErrorMessage} from '../utils/errorHandling';
+import {logger} from '../utils/logger';
 import {LoadingSpinner} from './LoadingSpinner';
+import {Toast} from './Toast';
 import {BackButton} from './BackButton';
 import {ChangePasswordModal} from './ChangePasswordModal';
 import {ChangeEmailModal} from './ChangeEmailModal';
@@ -10,6 +19,13 @@ import {ConfirmModal} from './ConfirmModal';
 import {TableSelector} from './TableSelector';
 import {RowDetailModal} from './RowDetailModal';
 import {AddRowsModal} from './AddRowsModal';
+import {MatchCard} from './MatchCard';
+import UploadMatchResultsModal from './UploadMatchResultsModal';
+import {
+  enrichMatches,
+  filterFinishedMatchesWithoutResults,
+} from '../utils/matchUtils';
+import {getMatchResultsEndpoint} from '../utils/constants';
 
 type TableInfo = {
   name: string;
@@ -28,9 +44,9 @@ export function Dashboard() {
   const {authenticatedFetch, logout} = useAuth();
   const {userInfo, error: userError, refetchUserInfo} = useUserData();
 
-  const [activeSection, setActiveSection] = useState<'profile' | 'database'>(
-    'profile'
-  );
+  const [activeSection, setActiveSection] = useState<
+    'profile' | 'database' | 'uploadMatches'
+  >('profile');
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [selectedTable, setSelectedTable] = useState<string>('');
   const [tableData, setTableData] = useState<TableData>([]);
@@ -40,31 +56,100 @@ export function Dashboard() {
   const [selectedRow, setSelectedRow] = useState<Record<string, any> | null>(
     null
   );
-  const [isModalClosing, setIsModalClosing] = useState(false);
+  const rowModal = useModalState();
   const [isSaving, setIsSaving] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isDeleteModalClosing, setIsDeleteModalClosing] = useState(false);
+  const deleteModal = useModalState();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [isAddModalClosing, setIsAddModalClosing] = useState(false);
+  const addModal = useModalState();
   const [isAdding, setIsAdding] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [rowModalError, setRowModalError] = useState<string | null>(null);
 
+  // Match data for admin: finished matches without results
+  const {
+    matches,
+    teams,
+    players,
+    results,
+    playerStats,
+    error: matchError,
+    refetch: refetchMatchData,
+  } = useMatchData();
+
+  const enrichedMatches = enrichMatches({
+    matches,
+    teams,
+    players,
+    results,
+    playerStats,
+  });
+
+  const matchesToProcess = filterFinishedMatchesWithoutResults(enrichedMatches);
+
+  const uploadModal = useModalState();
+  const [selectedMatchToUpload, setSelectedMatchToUpload] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+
+  const openUploadModal = (match: any) => {
+    setSelectedMatchToUpload(match);
+    setUploadError(null);
+    uploadModal.open();
+  };
+
+  const handleUploadMatchResults = async (resultsFile: File, statsFile: File) => {
+    if (!selectedMatchToUpload) return;
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const fd = new FormData();
+      fd.append('results', resultsFile);
+      fd.append('stats', statsFile);
+
+      const resp = await authenticatedFetch(
+        getMatchResultsEndpoint(selectedMatchToUpload.id),
+        {
+          method: 'POST',
+          body: fd,
+        }
+      );
+
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(
+          text || `Error en la subida: ${resp.status} ${resp.statusText}`
+        );
+      }
+      uploadModal.close();
+      setSelectedMatchToUpload(null);
+      // show success and refresh match data without full reload
+      setUploadSuccess('Cargado correctamente');
+      if (refetchMatchData) {
+        try {
+          await refetchMatchData();
+        } catch (err) {
+          // ignore refetch errors (data will refresh on next visit)
+        }
+      }
+      setTimeout(() => setUploadSuccess(null), 3000);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   // Password change states
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [isChangePasswordModalClosing, setIsChangePasswordModalClosing] =
-    useState(false);
+  const passwordModal = useModalState();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // Email change states
-  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
-  const [isChangeEmailModalClosing, setIsChangeEmailModalClosing] =
-    useState(false);
+  const emailModal = useModalState();
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
@@ -88,13 +173,10 @@ export function Dashboard() {
     setLoadingTables(true);
     setError(null);
     try {
-      const response = await authenticatedFetch(
-        'http://127-0-0-1.sslip.io/api/v1/tables',
-        {
-          method: 'GET',
-        }
-      );
-      if (!response.ok) throw new Error('Error al cargar las tablas');
+      const response = await authenticatedFetch(API_ENDPOINTS.TABLES, {
+        method: 'GET',
+      });
+      if (!response.ok) throw new Error(ERROR_MESSAGES.LOAD_TABLES);
       const data: TableInfo[] = await response.json();
       setTables(data);
       if (data.length > 0 && data[0]) {
@@ -111,12 +193,10 @@ export function Dashboard() {
     setLoadingData(true);
     setError(null);
     try {
-      const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${tableName}/json`,
-        {method: 'GET'}
-      );
-      if (!response.ok)
-        throw new Error('Error al cargar los datos de la tabla');
+      const response = await authenticatedFetch(getTableEndpoint(tableName), {
+        method: 'GET',
+      });
+      if (!response.ok) throw new Error(ERROR_MESSAGES.LOAD_TABLE_DATA);
       const data: TableData = await response.json();
       const sortedData = data.sort((a, b) => {
         if (a.id && b.id) return a.id - b.id;
@@ -144,15 +224,14 @@ export function Dashboard() {
 
   const handleRowClick = (row: Record<string, any>) => {
     setSelectedRow(row);
-    setIsModalClosing(false);
+    rowModal.open();
     setRowModalError(null);
   };
 
   const handleCloseModal = () => {
-    setIsModalClosing(true);
+    rowModal.close();
     setTimeout(() => {
       setSelectedRow(null);
-      setIsModalClosing(false);
       setRowModalError(null);
     }, 300);
   };
@@ -165,7 +244,7 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/${selectedRow.id}/json`,
+        `${getTableEndpoint(selectedTable)}/${selectedRow.id}`,
         {
           method: 'PUT',
           headers: {
@@ -176,25 +255,20 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        let errorMessage = 'Error al guardar los cambios';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch (parseError) {
-          errorMessage = `Error ${response.status}: ${response.statusText}`;
-        }
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al guardar los cambios'
+        );
         throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
       handleCloseModal();
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : 'Error desconocido al guardar los cambios';
-      setRowModalError(errorMsg);
-      console.error('Error in handleSaveRowChanges:', err);
+      setRowModalError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.SAVE_CHANGES
+      );
+      logger.error('Error in handleSaveRowChanges:', err);
     } finally {
       setIsSaving(false);
     }
@@ -232,7 +306,7 @@ export function Dashboard() {
     try {
       const deletePromises = Array.from(selectedRows).map(id =>
         authenticatedFetch(
-          `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/${id}`,
+          `${getTableEndpoint(selectedTable)}/${id}`,
           {method: 'DELETE'}
         )
       );
@@ -250,21 +324,17 @@ export function Dashboard() {
 
       await fetchTableData(selectedTable);
       setSelectedRows(new Set());
-      
+
       // Solo cerrar el modal si la eliminación fue exitosa
-      setIsDeleteModalClosing(true);
+      deleteModal.close();
       setTimeout(() => {
-        setShowDeleteConfirm(false);
-        setIsDeleteModalClosing(false);
         setDeleteError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : 'Error desconocido al eliminar los registros';
-      setDeleteError(errorMsg);
-      console.error('Error in handleDeleteSelected:', err);
+      setDeleteError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.DELETE_RECORDS
+      );
+      logger.error('Error in handleDeleteSelected:', err);
     } finally {
       setIsDeleting(false);
     }
@@ -278,39 +348,31 @@ export function Dashboard() {
     setPasswordError(null);
 
     try {
-      const response = await authenticatedFetch(
-        'http://127-0-0-1.sslip.io/api/v1/user/changePassword',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({actualPassword, newPassword}),
-        }
-      );
+      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_PASSWORD, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({actualPassword, newPassword}),
+      });
 
       if (!response.ok) {
-        let errorMessage = 'Error al cambiar la contraseña';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {}
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al cambiar la contraseña'
+        );
         throw new Error(errorMessage);
       }
 
-      setIsChangePasswordModalClosing(true);
+      passwordModal.close();
       setTimeout(() => {
-        setShowChangePasswordModal(false);
-        setIsChangePasswordModalClosing(false);
         setPasswordError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : 'Error desconocido al cambiar la contraseña';
-      setPasswordError(errorMsg);
-      console.error('Error in handleChangePassword:', err);
+      setPasswordError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.CHANGE_PASSWORD
+      );
+      logger.error('Error in handleChangePassword:', err);
     } finally {
       setIsChangingPassword(false);
     }
@@ -321,40 +383,32 @@ export function Dashboard() {
     setEmailError(null);
 
     try {
-      const response = await authenticatedFetch(
-        'http://127-0-0-1.sslip.io/api/v1/user/changeEmail',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({password, newEmail}),
-        }
-      );
+      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_EMAIL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({password, newEmail}),
+      });
 
       if (!response.ok) {
-        let errorMessage = 'Error al cambiar el email';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {}
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al cambiar el email'
+        );
         throw new Error(errorMessage);
       }
 
       await refetchUserInfo();
-      setIsChangeEmailModalClosing(true);
+      emailModal.close();
       setTimeout(() => {
-        setShowChangeEmailModal(false);
-        setIsChangeEmailModalClosing(false);
         setEmailError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : 'Error desconocido al cambiar el email';
-      setEmailError(errorMsg);
-      console.error('Error in handleChangeEmail:', err);
+      setEmailError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.CHANGE_EMAIL
+      );
+      logger.error('Error in handleChangeEmail:', err);
     } finally {
       setIsChangingEmail(false);
     }
@@ -366,7 +420,7 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/json`,
+        getTableEndpoint(selectedTable),
         {
           method: 'POST',
           headers: {
@@ -377,28 +431,23 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        let errorMessage = 'Error al agregar las filas';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {}
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al agregar las filas'
+        );
         throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
-      setIsAddModalClosing(true);
+      addModal.close();
       setTimeout(() => {
-        setShowAddModal(false);
-        setIsAddModalClosing(false);
         setModalError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : 'Error desconocido al agregar las filas';
-      setModalError(errorMsg);
-      console.error('Error in handleSubmitWebRows:', err);
+      setModalError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.ADD_ROWS
+      );
+      logger.error('Error in handleSubmitWebRows:', err);
     } finally {
       setIsAdding(false);
     }
@@ -410,7 +459,7 @@ export function Dashboard() {
 
     try {
       const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/json`,
+        getTableEndpoint(selectedTable),
         {
           method: 'POST',
           headers: {
@@ -421,28 +470,23 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        let errorMessage = 'Error al procesar el JSON';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {}
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al procesar el JSON'
+        );
         throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
-      setIsAddModalClosing(true);
+      addModal.close();
       setTimeout(() => {
-        setShowAddModal(false);
-        setIsAddModalClosing(false);
         setModalError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : 'Error desconocido al procesar el JSON';
-      setModalError(errorMsg);
-      console.error('Error in handleSubmitJsonRows:', err);
+      setModalError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.PROCESS_JSON
+      );
+      logger.error('Error in handleSubmitJsonRows:', err);
     } finally {
       setIsAdding(false);
     }
@@ -457,7 +501,7 @@ export function Dashboard() {
       formData.append('file', file);
 
       const response = await authenticatedFetch(
-        `http://127-0-0-1.sslip.io/api/v1/${selectedTable}/csv`,
+        getTableEndpoint(selectedTable),
         {
           method: 'POST',
           body: formData,
@@ -465,28 +509,23 @@ export function Dashboard() {
       );
 
       if (!response.ok) {
-        let errorMessage = 'Error al procesar el archivo CSV';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } catch {}
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al procesar el archivo CSV'
+        );
         throw new Error(errorMessage);
       }
 
       await fetchTableData(selectedTable);
-      setIsAddModalClosing(true);
+      addModal.close();
       setTimeout(() => {
-        setShowAddModal(false);
-        setIsAddModalClosing(false);
         setModalError(null);
       }, 300);
     } catch (err) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : 'Error desconocido al procesar el archivo CSV';
-      setModalError(errorMsg);
-      console.error('Error in handleSubmitCsvFile:', err);
+      setModalError(
+        err instanceof Error ? err.message : ERROR_MESSAGES.PROCESS_CSV
+      );
+      logger.error('Error in handleSubmitCsvFile:', err);
     } finally {
       setIsAdding(false);
     }
@@ -564,6 +603,37 @@ export function Dashboard() {
                   <div className="space-y-2">
                     <button
                       onClick={() => {
+                        if (activeSection !== 'uploadMatches') {
+                          setIsTransitioning(true);
+                          setTimeout(() => {
+                            setActiveSection('uploadMatches');
+                            setIsTransitioning(false);
+                          }, 300);
+                        }
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 focus:outline-none select-none border ${
+                        activeSection === 'uploadMatches'
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
+                          : 'text-slate-300 hover:bg-white/5 active:bg-white/10 border-transparent'
+                      }`}
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      Cargar resultados
+                    </button>
+                    <button
+                      onClick={() => {
                         if (activeSection !== 'database') {
                           setIsTransitioning(true);
                           setTimeout(() => {
@@ -609,9 +679,41 @@ export function Dashboard() {
                   <ProfileSection
                     userInfo={userInfo}
                     userError={userError}
-                    onChangePassword={() => setShowChangePasswordModal(true)}
-                    onChangeEmail={() => setShowChangeEmailModal(true)}
+                    onChangePassword={passwordModal.open}
+                    onChangeEmail={emailModal.open}
                   />
+                )}
+
+                {activeSection === 'uploadMatches' && userInfo?.admin && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-2xl font-bold text-white">Cargar resultados</h3>
+                      <div className="text-slate-400 text-sm">Subir resultados y estadísticas</div>
+                    </div>
+
+                    {/* upload success is shown via Toast */}
+
+                    <div>
+                      {matchesToProcess.length === 0 ? (
+                        <div className="text-slate-400">No hay partidos pendientes para procesar.</div>
+                      ) : (
+                        <div className="space-y-3">
+                          {matchesToProcess.map(m => (
+                            <MatchCard
+                              key={m.id}
+                              match={m}
+                              onMatchClick={() => openUploadModal(m)}
+                              onBetClick={() => {}}
+                              customAction={{
+                                text: 'Cargar resultados',
+                                onClick: () => openUploadModal(m),
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 {activeSection === 'database' && userInfo?.admin && (
@@ -630,11 +732,13 @@ export function Dashboard() {
                     onToggleSelectAll={toggleSelectAll}
                     onDeleteSelected={() => {
                       setDeleteError(null);
-                      setShowDeleteConfirm(true);
+                      deleteModal.open();
                     }}
-                    onShowAddModal={() => setShowAddModal(true)}
+                    onShowAddModal={addModal.open}
                     isDeleting={isDeleting}
                     isTransitioning={isTransitioning}
+                    ongoingMatches={matchesToProcess}
+                    onOpenUploadMatch={openUploadModal}
                   />
                 )}
               </div>
@@ -645,13 +749,11 @@ export function Dashboard() {
 
       {/* Modals */}
       <ConfirmModal
-        isOpen={showDeleteConfirm}
-        isClosing={isDeleteModalClosing}
+        isOpen={deleteModal.isOpen}
+        isClosing={deleteModal.isClosing}
         onClose={() => {
-          setIsDeleteModalClosing(true);
+          deleteModal.close();
           setTimeout(() => {
-            setShowDeleteConfirm(false);
-            setIsDeleteModalClosing(false);
             setDeleteError(null);
           }, 300);
         }}
@@ -661,22 +763,19 @@ export function Dashboard() {
           selectedRows.size === 1 ? 'registro' : 'registros'
         }? <b>Esta acción no se puede deshacer.</b>`}
         confirmText="Sí, eliminar"
-        cancelText="Cancelar"
         isLoading={isDeleting}
         variant="danger"
         error={deleteError}
       />
 
       <AddRowsModal
-        isOpen={showAddModal}
-        isClosing={isAddModalClosing}
+        isOpen={addModal.isOpen}
+        isClosing={addModal.isClosing}
         selectedTable={selectedTable}
         selectedTableInfo={selectedTableInfo}
         onClose={() => {
-          setIsAddModalClosing(true);
+          addModal.close();
           setTimeout(() => {
-            setShowAddModal(false);
-            setIsAddModalClosing(false);
             setModalError(null);
           }, 300);
         }}
@@ -688,13 +787,11 @@ export function Dashboard() {
       />
 
       <ChangePasswordModal
-        isOpen={showChangePasswordModal}
-        isClosing={isChangePasswordModalClosing}
+        isOpen={passwordModal.isOpen}
+        isClosing={passwordModal.isClosing}
         onClose={() => {
-          setIsChangePasswordModalClosing(true);
+          passwordModal.close();
           setTimeout(() => {
-            setShowChangePasswordModal(false);
-            setIsChangePasswordModalClosing(false);
             setPasswordError(null);
           }, 300);
         }}
@@ -704,13 +801,11 @@ export function Dashboard() {
       />
 
       <ChangeEmailModal
-        isOpen={showChangeEmailModal}
-        isClosing={isChangeEmailModalClosing}
+        isOpen={emailModal.isOpen}
+        isClosing={emailModal.isClosing}
         onClose={() => {
-          setIsChangeEmailModalClosing(true);
+          emailModal.close();
           setTimeout(() => {
-            setShowChangeEmailModal(false);
-            setIsChangeEmailModalClosing(false);
             setEmailError(null);
           }, 300);
         }}
@@ -719,9 +814,33 @@ export function Dashboard() {
         error={emailError}
       />
 
+      <UploadMatchResultsModal
+        isOpen={uploadModal.isOpen}
+        isClosing={uploadModal.isClosing}
+        match={
+          selectedMatchToUpload
+            ? {
+                id: selectedMatchToUpload.id,
+                match_date: selectedMatchToUpload.match_date,
+                team_a_name: selectedMatchToUpload.team_a?.name,
+                team_b_name: selectedMatchToUpload.team_b?.name,
+                team_a_image: selectedMatchToUpload.team_a?.image_url,
+                team_b_image: selectedMatchToUpload.team_b?.image_url,
+              }
+            : null
+        }
+        onClose={() => {
+          uploadModal.close();
+          setTimeout(() => setUploadError(null), 300);
+        }}
+        onSubmit={handleUploadMatchResults}
+        isLoading={isUploading}
+        error={uploadError}
+      />
+
       <RowDetailModal
-        isOpen={!!selectedRow}
-        isClosing={isModalClosing}
+        isOpen={rowModal.isOpen}
+        isClosing={rowModal.isClosing}
         selectedRow={selectedRow}
         selectedTable={selectedTable}
         onClose={handleCloseModal}
@@ -729,6 +848,14 @@ export function Dashboard() {
         isSaving={isSaving}
         error={rowModalError}
       />
+      {uploadSuccess && (
+        <Toast
+          message={uploadSuccess}
+          type="success"
+          onClose={() => setUploadSuccess(null)}
+          duration={2500}
+        />
+      )}
     </div>
   );
 }
@@ -983,6 +1110,8 @@ type DatabaseSectionProps = {
   onShowAddModal: () => void;
   isDeleting: boolean;
   isTransitioning: boolean;
+  ongoingMatches?: any[];
+  onOpenUploadMatch?: (match: any) => void;
 };
 
 function DatabaseSection({
@@ -1002,6 +1131,8 @@ function DatabaseSection({
   onShowAddModal,
   isDeleting,
   isTransitioning,
+  ongoingMatches = [],
+  onOpenUploadMatch,
 }: DatabaseSectionProps) {
   if (loadingTables) {
     return (
@@ -1087,7 +1218,7 @@ function DatabaseSection({
           {/* Insert Button */}
           <button
             onClick={onShowAddModal}
-            className="px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-colors duration-300 whitespace-nowrap text-white bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:shadow-xl active:scale-99"
+            className="px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-colors duration-300 whitespace-nowrap text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 hover:shadow-xl active:scale-99"
           >
             <span className="flex items-center gap-2">
               <svg

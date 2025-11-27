@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useAuth} from '../context/AuthContext';
+import {API_ENDPOINTS} from '../utils/constants';
 import type {
   WhoAmIResponse,
   Match,
@@ -28,60 +29,47 @@ export function useMatchData() {
   });
   const [error, setError] = useState<string | null>(null);
 
+  const fetchData = async () => {
+    try {
+      setError(null);
+
+      const [matchesRes, teamsRes, playersRes, resultsRes, statsRes] =
+        await Promise.all([
+          authenticatedFetch(API_ENDPOINTS.MATCHES, {method: 'GET'}),
+          authenticatedFetch(API_ENDPOINTS.TEAMS, {
+            method: 'GET',
+          }),
+          authenticatedFetch(API_ENDPOINTS.PLAYERS, {method: 'GET'}),
+          authenticatedFetch(API_ENDPOINTS.MATCHES_RESULTS, {method: 'GET'}),
+          authenticatedFetch(API_ENDPOINTS.PLAYER_MATCH_STATS, {
+            method: 'GET',
+          }),
+        ]);
+
+      const matchesData: Match[] = await matchesRes.json();
+      const teamsData: Team[] = await teamsRes.json();
+      const playersData: Player[] = await playersRes.json();
+      const resultsData: MatchResult[] = await resultsRes.json();
+      const statsData: PlayerMatchStats[] = await statsRes.json();
+
+      setData({
+        matches: matchesData,
+        teams: teamsData,
+        players: playersData,
+        results: resultsData,
+        playerStats: statsData,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load match data.');
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated || isLoading) return;
-
-    const fetchData = async () => {
-      try {
-        setError(null);
-
-        const [matchesRes, teamsRes, playersRes, resultsRes, statsRes] =
-          await Promise.all([
-            authenticatedFetch(
-              'http://127-0-0-1.sslip.io/api/v1/matches/json',
-              {method: 'GET'}
-            ),
-            authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/teams/json', {
-              method: 'GET',
-            }),
-            authenticatedFetch(
-              'http://127-0-0-1.sslip.io/api/v1/players/json',
-              {method: 'GET'}
-            ),
-            authenticatedFetch(
-              'http://127-0-0-1.sslip.io/api/v1/matches_results/json',
-              {method: 'GET'}
-            ),
-            authenticatedFetch(
-              'http://127-0-0-1.sslip.io/api/v1/player_match_stats/json',
-              {method: 'GET'}
-            ),
-          ]);
-
-        const matchesData: Match[] = await matchesRes.json();
-        const teamsData: Team[] = await teamsRes.json();
-        const playersData: Player[] = await playersRes.json();
-        const resultsData: MatchResult[] = await resultsRes.json();
-        const statsData: PlayerMatchStats[] = await statsRes.json();
-
-        setData({
-          matches: matchesData,
-          teams: teamsData,
-          players: playersData,
-          results: resultsData,
-          playerStats: statsData,
-        });
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load match data.'
-        );
-      }
-    };
-
     fetchData();
   }, [authenticatedFetch, isAuthenticated, isLoading]);
 
-  return {...data, error};
+  return {...data, error, refetch: fetchData};
 }
 
 export function useUserData() {
@@ -92,10 +80,9 @@ export function useUserData() {
   const fetchUserInfo = async () => {
     try {
       setError(null);
-      const userResponse = await authenticatedFetch(
-        'http://127-0-0-1.sslip.io/api/v1/user/whoami',
-        {method: 'GET'}
-      );
+      const userResponse = await authenticatedFetch(API_ENDPOINTS.WHO_AM_I, {
+        method: 'GET',
+      });
       if (!userResponse.ok)
         throw new Error(`User fetch failed: ${userResponse.status}`);
       const userData: WhoAmIResponse = await userResponse.json();

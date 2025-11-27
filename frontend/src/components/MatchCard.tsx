@@ -7,6 +7,10 @@ type MatchCardProps = {
   showBetting?: boolean;
   onMatchClick: (match: MatchWithDetails) => void;
   onBetClick: (matchId: number, teamId: number, teamName: string) => void;
+  customAction?: {
+    text: string;
+    onClick: () => void;
+  };
 };
 
 export function MatchCard({
@@ -14,6 +18,7 @@ export function MatchCard({
   showBetting = false,
   onMatchClick,
   onBetClick,
+  customAction,
 }: MatchCardProps) {
   const isLive = !match.result && new Date(match.match_date) <= new Date();
   const isUpcoming = !match.result && new Date(match.match_date) > new Date();
@@ -21,7 +26,7 @@ export function MatchCard({
   return (
     <div
       className="bg-slate-800/50 border border-white/10 rounded-lg p-4 mb-3 hover:border-white/30 transition-all cursor-pointer"
-      onClick={() => onMatchClick(match)}
+      onClick={() => customAction ? customAction.onClick() : onMatchClick(match)}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="text-xs text-slate-400">
@@ -63,7 +68,7 @@ export function MatchCard({
 
       {match.result && <MatchResult match={match} />}
 
-      {showBetting && <BettingButtons match={match} onBetClick={onBetClick} />}
+      {showBetting && !customAction && <BettingButtons match={match} onBetClick={onBetClick} />}
     </div>
   );
 }

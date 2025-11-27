@@ -6,8 +6,8 @@ import {
   logout as logoutUser,
   authenticatedFetch as authenticatedFetchUser,
   refreshToken,
-  HttpError,
 } from '../utils/auth';
+import {HttpError} from '../utils/errorHandling';
 
 type AuthContextType = {
   isAuthenticated: boolean;

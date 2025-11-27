@@ -43,7 +43,7 @@ services:
       - REFRESH_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
       - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
       - FRONTEND_URL=${FRONTEND_URL:-http://127-0-0-1.sslip.io}
-      - BACKEND_URL=${BACKEND_URL:-http://127-0-0-1.sslip.io/api}
+      - BACKEND_URL=${BACKEND_URL:-http://127-0-0-1.sslip.io/api/v1}
       - NODE_ENV=${NODE_ENV:-development}
     depends_on:
       - postgres

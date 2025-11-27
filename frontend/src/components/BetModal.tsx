@@ -33,7 +33,7 @@ export function BetModal({
 
   const handleConfirm = async () => {
     setBetError(null);
-    
+
     if (!betAmount || parseFloat(betAmount) <= 0) {
       setBetError('Por favor ingresa un monto válido mayor a $0');
       return;
@@ -51,7 +51,8 @@ export function BetModal({
       onSuccess?.();
       handleClose();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Error desconocido';
       setBetError(errorMessage);
     } finally {
       setIsProcessing(false);
@@ -72,18 +73,19 @@ export function BetModal({
   };
 
   return (
-    <div 
-      className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+    <div
+      className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
+        isClosing ? 'animate-fade-out' : 'animate-fade-in'
+      }`}
       onClick={handleClose}
     >
-      <div 
-        className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-md w-full ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}
-        onClick={(e) => e.stopPropagation()}
+      <div
+        className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-md w-full ${
+          isClosing ? 'animate-scale-out' : 'animate-scale-in'
+        }`}
+        onClick={e => e.stopPropagation()}
       >
-        <ModalHeader 
-          teamName={teamName}
-          onClose={handleClose}
-        />
+        <ModalHeader teamName={teamName} onClose={handleClose} />
 
         <BetAmountInput
           value={betAmount}
@@ -92,9 +94,7 @@ export function BetModal({
           onKeyDown={handleKeyDown}
         />
 
-        {betError && (
-          <ErrorMessage message={betError} />
-        )}
+        {betError && <ErrorMessage message={betError} />}
 
         <ActionButtons
           onCancel={handleClose}
@@ -115,9 +115,12 @@ function ModalHeader({teamName, onClose}: ModalHeaderProps) {
   return (
     <div className="flex justify-between items-start mb-6">
       <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Quemá tus ahorros</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">
+          Quemá tus ahorros
+        </h2>
         <p className="text-slate-400 text-sm">
-          Apostando por: <span className="font-semibold text-blue-400">{teamName}</span>
+          Apostando por:{' '}
+          <span className="font-semibold text-blue-400">{teamName}</span>
         </p>
       </div>
       <button
@@ -137,7 +140,12 @@ type BetAmountInputProps = {
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 };
 
-function BetAmountInput({value, userBalance, onChange, onKeyDown}: BetAmountInputProps) {
+function BetAmountInput({
+  value,
+  userBalance,
+  onChange,
+  onKeyDown,
+}: BetAmountInputProps) {
   return (
     <div className="mb-6">
       <label className="block text-sm text-slate-300 mb-2 font-semibold">
@@ -149,13 +157,14 @@ function BetAmountInput({value, userBalance, onChange, onKeyDown}: BetAmountInpu
         min="0"
         step="0.01"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={e => onChange(e.target.value)}
         onKeyDown={onKeyDown}
         className="w-full px-4 py-3 bg-slate-900/50 border border-white/20 rounded-lg text-white text-lg text-center focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all"
         autoFocus
       />
       <p className="text-xs text-slate-400 mt-2 text-center">
-        Saldo disponible: <span className="font-semibold text-green-400">${userBalance}</span>
+        Saldo disponible:{' '}
+        <span className="font-semibold text-green-400">${userBalance}</span>
       </p>
     </div>
   );
@@ -175,7 +184,11 @@ type ActionButtonsProps = {
   isProcessing: boolean;
 };
 
-function ActionButtons({onCancel, onConfirm, isProcessing}: ActionButtonsProps) {
+function ActionButtons({
+  onCancel,
+  onConfirm,
+  isProcessing,
+}: ActionButtonsProps) {
   return (
     <div className="flex gap-3">
       <button

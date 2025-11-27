@@ -28,7 +28,9 @@ export function MatchColumn({
   return (
     <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-        <span className={`w-3 h-3 ${colorClasses[statusColor]} rounded-full`}></span>
+        <span
+          className={`w-3 h-3 ${colorClasses[statusColor]} rounded-full`}
+        ></span>
         {title}
       </h2>
       <div className="space-y-3">

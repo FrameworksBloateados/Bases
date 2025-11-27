@@ -41,7 +41,9 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
       onSuccess?.();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Error al crear la cuenta. Intentá de nuevo.'
+        err instanceof Error
+          ? err.message
+          : 'Error al crear la cuenta. Intentá de nuevo.'
       );
     } finally {
       setIsLoading(false);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import {useState} from 'react';
 
 type RowDetailModalProps = {
   isOpen: boolean;
@@ -35,7 +35,7 @@ export function RowDetailModal({
         newSet.delete(fieldName);
         // Remove from edited values when disabling edit
         setEditedValues(prevEdited => {
-          const newEdited = { ...prevEdited };
+          const newEdited = {...prevEdited};
           delete newEdited[fieldName];
           return newEdited;
         });
@@ -62,7 +62,7 @@ export function RowDetailModal({
 
   const hasRealChanges = () => {
     if (!selectedRow || Object.keys(editedValues).length === 0) return false;
-    
+
     return Object.entries(editedValues).some(([key, value]) => {
       return selectedRow[key] !== value;
     });
@@ -70,7 +70,7 @@ export function RowDetailModal({
 
   const handleSave = async () => {
     if (!hasRealChanges()) return;
-    
+
     await onSave(editedValues);
     setEditableFields(new Set());
     setEditedValues({});
@@ -186,10 +186,7 @@ export function RowDetailModal({
                           <select
                             value={String(currentValue)}
                             onChange={e =>
-                              handleFieldChange(
-                                key,
-                                e.target.value === 'true'
-                              )
+                              handleFieldChange(key, e.target.value === 'true')
                             }
                             className="w-full px-3 py-2 bg-slate-800 text-white border border-blue-400/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
                           >
@@ -201,19 +198,30 @@ export function RowDetailModal({
                             type="number"
                             value={currentValue}
                             onChange={e =>
-                              handleFieldChange(
-                                key,
-                                parseFloat(e.target.value)
-                              )
+                              handleFieldChange(key, parseFloat(e.target.value))
                             }
                             className="w-full px-3 py-2 bg-slate-800 text-white border border-blue-400/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
                           />
-                        ) : typeof value === 'string' && (key.toLowerCase().includes('date') || key.toLowerCase().includes('_at') || key.toLowerCase().includes('timestamp')) ? (
+                        ) : typeof value === 'string' &&
+                          (key.toLowerCase().includes('date') ||
+                            key.toLowerCase().includes('_at') ||
+                            key.toLowerCase().includes('timestamp')) ? (
                           <input
                             type="datetime-local"
-                            value={currentValue ? new Date(currentValue).toISOString().slice(0, 16) : ''}
+                            value={
+                              currentValue
+                                ? new Date(currentValue)
+                                    .toISOString()
+                                    .slice(0, 16)
+                                : ''
+                            }
                             onChange={e =>
-                              handleFieldChange(key, e.target.value ? new Date(e.target.value).toISOString() : '')
+                              handleFieldChange(
+                                key,
+                                e.target.value
+                                  ? new Date(e.target.value).toISOString()
+                                  : ''
+                              )
                             }
                             className="w-full px-3 py-2 bg-slate-800 text-white border border-blue-400/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200"
                           />

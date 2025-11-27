@@ -1,5 +1,10 @@
 import {useState} from 'react';
-import type {MatchWithDetails, Team, Player, PlayerMatchStats} from '../types/match.types';
+import type {
+  MatchWithDetails,
+  Team,
+  Player,
+  PlayerMatchStats,
+} from '../types/match.types';
 import {LiveMatchTimer} from './LiveMatchTimer';
 import {CountdownTimer} from './CountdownTimer';
 
@@ -10,7 +15,12 @@ type MatchDetailModalProps = {
   onBetClick?: (matchId: number, teamId: number, teamName: string) => void;
 };
 
-export function MatchDetailModal({match, teams, onClose, onBetClick}: MatchDetailModalProps) {
+export function MatchDetailModal({
+  match,
+  teams,
+  onClose,
+  onBetClick,
+}: MatchDetailModalProps) {
   const [isClosing, setIsClosing] = useState(false);
 
   const handleClose = () => {
@@ -20,35 +30,35 @@ export function MatchDetailModal({match, teams, onClose, onBetClick}: MatchDetai
     }, 300);
   };
 
-  const winningTeamName = teams.find(t => t.id === match.result?.winning_team_id)?.name || 'Unknown';
+  const winningTeamName =
+    teams.find(t => t.id === match.result?.winning_team_id)?.name || 'Unknown';
   const isUpcoming = !match.result && new Date(match.match_date) > new Date();
   const isLive = !match.result && new Date(match.match_date) <= new Date();
 
   return (
-    <div 
-      className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+    <div
+      className={`fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-200 ${
+        isClosing ? 'animate-fade-out' : 'animate-fade-in'
+      }`}
       onClick={handleClose}
     >
-      <div 
-        className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto ${isClosing ? 'animate-scale-out' : 'animate-scale-in'}`}
-        onClick={(e) => e.stopPropagation()}
+      <div
+        className={`bg-slate-800 border border-white/20 rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto ${
+          isClosing ? 'animate-scale-out' : 'animate-scale-in'
+        }`}
+        onClick={e => e.stopPropagation()}
       >
-        <ModalHeader 
+        <ModalHeader
           matchDate={match.match_date}
           isLive={isLive}
           isUpcoming={isUpcoming}
           onClose={handleClose}
         />
 
-        {match.result && (
-          <MatchScore match={match} />
-        )}
+        {match.result && <MatchScore match={match} />}
 
         {isUpcoming && onBetClick && (
-          <BettingSection
-            match={match}
-            onBetClick={onBetClick}
-          />
+          <BettingSection match={match} onBetClick={onBetClick} />
         )}
 
         <div className="grid grid-cols-2 gap-8">
@@ -64,9 +74,7 @@ export function MatchDetailModal({match, teams, onClose, onBetClick}: MatchDetai
           />
         </div>
 
-        {match.result && (
-          <WinnerBanner winningTeamName={winningTeamName} />
-        )}
+        {match.result && <WinnerBanner winningTeamName={winningTeamName} />}
       </div>
     </div>
   );
@@ -79,21 +87,24 @@ type ModalHeaderProps = {
   onClose: () => void;
 };
 
-function ModalHeader({matchDate, isLive, isUpcoming, onClose}: ModalHeaderProps) {
+function ModalHeader({
+  matchDate,
+  isLive,
+  isUpcoming,
+  onClose,
+}: ModalHeaderProps) {
   return (
     <div className="flex justify-between items-start mb-6">
       <div className="flex-1">
-        <h2 className="text-2xl font-bold text-white mb-2">Detalles del partido</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">
+          Detalles del partido
+        </h2>
         <div className="flex items-center gap-3">
           <p className="text-slate-400 text-sm">
             {new Date(matchDate).toLocaleString()}
           </p>
-          {isLive && (
-            <LiveMatchTimer startTime={matchDate} />
-          )}
-          {isUpcoming && (
-            <CountdownTimer targetTime={matchDate} />
-          )}
+          {isLive && <LiveMatchTimer startTime={matchDate} />}
+          {isUpcoming && <CountdownTimer targetTime={matchDate} />}
         </div>
       </div>
       <button
@@ -136,20 +147,37 @@ type TeamScoreDisplayProps = {
   reverse?: boolean;
 };
 
-function TeamScoreDisplay({team, score, isWinner, reverse = false}: TeamScoreDisplayProps) {
+function TeamScoreDisplay({
+  team,
+  score,
+  isWinner,
+  reverse = false,
+}: TeamScoreDisplayProps) {
   const content = (
     <>
       {!reverse && team?.image_url && (
-        <img src={team.image_url} alt={team.name} className="w-12 h-12 object-contain" />
+        <img
+          src={team.image_url}
+          alt={team.name}
+          className="w-12 h-12 object-contain"
+        />
       )}
       <div className="text-center">
         <p className="text-white font-semibold">{team?.name || 'Unknown'}</p>
-        <p className={`text-3xl font-bold ${isWinner ? 'text-green-400' : 'text-slate-400'}`}>
+        <p
+          className={`text-3xl font-bold ${
+            isWinner ? 'text-green-400' : 'text-slate-400'
+          }`}
+        >
           {score}
         </p>
       </div>
       {reverse && team?.image_url && (
-        <img src={team.image_url} alt={team.name} className="w-12 h-12 object-contain" />
+        <img
+          src={team.image_url}
+          alt={team.name}
+          className="w-12 h-12 object-contain"
+        />
       )}
     </>
   );
@@ -168,7 +196,11 @@ function TeamStats({team, players, playerStats}: TeamStatsProps) {
     <div className="bg-slate-900/50 rounded-xl p-6 border border-white/10">
       <h3 className="text-xl font-bold text-white mb-4 text-center flex items-center justify-center gap-2">
         {team?.image_url && (
-          <img src={team.image_url} alt={team.name} className="w-8 h-8 object-contain" />
+          <img
+            src={team.image_url}
+            alt={team.name}
+            className="w-8 h-8 object-contain"
+          />
         )}
         {team?.name || 'Unknown'}
       </h3>
@@ -213,9 +245,7 @@ function PlayerCard({player, stats}: PlayerCardProps) {
 function WinnerBanner({winningTeamName}: {winningTeamName: string}) {
   return (
     <div className="mt-6 p-4 bg-green-500/20 border border-green-500/50 rounded-lg text-center">
-      <p className="text-green-400 font-bold text-lg">
-        🏆 {winningTeamName}
-      </p>
+      <p className="text-green-400 font-bold text-lg">🏆 {winningTeamName}</p>
     </div>
   );
 }
@@ -233,23 +263,47 @@ function BettingSection({match, onBetClick}: BettingSectionProps) {
       </h3>
       <div className="grid grid-cols-2 gap-4">
         <button
-          onClick={() => onBetClick(match.id, match.team_a_id, match.team_a?.name || 'Unknown')}
+          onClick={() =>
+            onBetClick(
+              match.id,
+              match.team_a_id,
+              match.team_a?.name || 'Unknown'
+            )
+          }
           className="flex flex-col items-center gap-3 p-4 bg-slate-800 hover:bg-slate-700 border border-white/10 hover:border-blue-500/50 rounded-lg transition-all duration-200 group"
         >
           {match.team_a?.image_url && (
-            <img src={match.team_a.image_url} alt={match.team_a.name} className="w-16 h-16 object-contain" />
+            <img
+              src={match.team_a.image_url}
+              alt={match.team_a.name}
+              className="w-16 h-16 object-contain"
+            />
           )}
-          <span className="text-white font-semibold text-center">{match.team_a?.name || 'Unknown'}</span>
+          <span className="text-white font-semibold text-center">
+            {match.team_a?.name || 'Unknown'}
+          </span>
         </button>
-        
+
         <button
-          onClick={() => onBetClick(match.id, match.team_b_id, match.team_b?.name || 'Unknown')}
+          onClick={() =>
+            onBetClick(
+              match.id,
+              match.team_b_id,
+              match.team_b?.name || 'Unknown'
+            )
+          }
           className="flex flex-col items-center gap-3 p-4 bg-slate-800 hover:bg-slate-700 border border-white/10 hover:border-blue-500/50 rounded-lg transition-all duration-200 group"
         >
           {match.team_b?.image_url && (
-            <img src={match.team_b.image_url} alt={match.team_b.name} className="w-16 h-16 object-contain" />
+            <img
+              src={match.team_b.image_url}
+              alt={match.team_b.name}
+              className="w-16 h-16 object-contain"
+            />
           )}
-          <span className="text-white font-semibold text-center">{match.team_b?.name || 'Unknown'}</span>
+          <span className="text-white font-semibold text-center">
+            {match.team_b?.name || 'Unknown'}
+          </span>
         </button>
       </div>
     </div>

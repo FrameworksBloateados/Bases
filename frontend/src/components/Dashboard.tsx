@@ -1019,7 +1019,7 @@ function DatabaseSection({
           <button
             onClick={selectedRows.size > 0 ? onDeleteSelected : undefined}
             disabled={isDeleting || selectedRows.size === 0}
-            className={`px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-all duration-300 whitespace-nowrap ${
+            className={`px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-colors duration-300 whitespace-nowrap ${
               isDeleting
                 ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50'
                 : selectedRows.size > 0
@@ -1075,7 +1075,7 @@ function DatabaseSection({
           {/* Insert Button */}
           <button
             onClick={onShowAddModal}
-            className="px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-all duration-300 whitespace-nowrap text-white bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:shadow-xl active:scale-99"
+            className="px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-colors duration-300 whitespace-nowrap text-white bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 hover:shadow-xl active:scale-99"
           >
             <span className="flex items-center gap-2">
               <svg

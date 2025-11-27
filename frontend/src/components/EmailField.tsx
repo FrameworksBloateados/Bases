@@ -35,9 +35,7 @@ export function EmailField({
         }`}
       />
       {showError && (
-        <p className="mt-1 text-xs text-red-300">
-          Ingresá un email válido
-        </p>
+        <p className="mt-1 text-xs text-red-300">Ingresá un email válido</p>
       )}
     </div>
   );

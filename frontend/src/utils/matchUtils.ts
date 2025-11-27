@@ -33,7 +33,9 @@ export function enrichMatches({
   }));
 }
 
-export function filterFinishedMatchesWithResults(matches: MatchWithDetails[]): MatchWithDetails[] {
+export function filterFinishedMatchesWithResults(
+  matches: MatchWithDetails[]
+): MatchWithDetails[] {
   const now = new Date();
   return matches.filter(m => {
     const matchDate = new Date(m.match_date);
@@ -41,7 +43,9 @@ export function filterFinishedMatchesWithResults(matches: MatchWithDetails[]): M
   });
 }
 
-export function filterFinishedMatchesWithoutResults(matches: MatchWithDetails[]): MatchWithDetails[] {
+export function filterFinishedMatchesWithoutResults(
+  matches: MatchWithDetails[]
+): MatchWithDetails[] {
   const now = new Date();
   return matches.filter(m => {
     const matchDate = new Date(m.match_date);
@@ -49,7 +53,9 @@ export function filterFinishedMatchesWithoutResults(matches: MatchWithDetails[])
   });
 }
 
-export function filterUpcomingMatches(matches: MatchWithDetails[]): MatchWithDetails[] {
+export function filterUpcomingMatches(
+  matches: MatchWithDetails[]
+): MatchWithDetails[] {
   const now = new Date();
   return matches.filter(m => {
     const matchDate = new Date(m.match_date);

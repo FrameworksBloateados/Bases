@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import {useState} from 'react';
 
 type TableInfo = {
   name: string;
@@ -41,7 +41,7 @@ export function TableSelector({
       setShowDropdown(false);
       return;
     }
-    
+
     onTableChange(tableName);
     setShowDropdown(false);
   };
@@ -52,9 +52,7 @@ export function TableSelector({
         onClick={toggleDropdown}
         className="px-4 py-2 text-sm font-bold text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-lg shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 flex items-center gap-2 min-w-[200px] justify-between"
       >
-        <span className="truncate">
-          {selectedTable || 'Seleccionar tabla'}
-        </span>
+        <span className="truncate">{selectedTable || 'Seleccionar tabla'}</span>
         <svg
           className={`w-4 h-4 transition-transform duration-300 ${
             showDropdown && !isClosing ? 'rotate-180' : ''

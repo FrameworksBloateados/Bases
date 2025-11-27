@@ -24,9 +24,18 @@ type ToastMessage = {
 export function App() {
   const {authenticatedFetch, isAuthenticated, isLoading, logout} = useAuth();
   const {userInfo, error: userError, refetchUserInfo} = useUserData();
-  const {matches, teams, players, results, playerStats, error: matchError} = useMatchData();
-  
-  const [selectedMatch, setSelectedMatch] = useState<MatchWithDetails | null>(null);
+  const {
+    matches,
+    teams,
+    players,
+    results,
+    playerStats,
+    error: matchError,
+  } = useMatchData();
+
+  const [selectedMatch, setSelectedMatch] = useState<MatchWithDetails | null>(
+    null
+  );
   const [selectedBetMatch, setSelectedBetMatch] = useState<{
     matchId: number;
     teamId: number;
@@ -36,29 +45,41 @@ export function App() {
 
   const error = userError || matchError;
 
-  const enrichedMatches = enrichMatches({matches, teams, players, results, playerStats});
+  const enrichedMatches = enrichMatches({
+    matches,
+    teams,
+    players,
+    results,
+    playerStats,
+  });
   const finishedWithResults = filterFinishedMatchesWithResults(enrichedMatches);
-  const finishedWithoutResults = filterFinishedMatchesWithoutResults(enrichedMatches);
+  const finishedWithoutResults =
+    filterFinishedMatchesWithoutResults(enrichedMatches);
   const upcomingMatches = filterUpcomingMatches(enrichedMatches);
 
   const handleBet = async (matchId: number, teamId: number, amount: number) => {
     try {
-      const response = await authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/bet', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          match_id: matchId,
-          team_id: teamId,
-          amount: amount,
-        }),
-      });
+      const response = await authenticatedFetch(
+        'http://127-0-0-1.sslip.io/api/v1/bet',
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            match_id: matchId,
+            team_id: teamId,
+            amount: amount,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({error: 'Error desconocido'}));
+        const errorData = await response
+          .json()
+          .catch(() => ({error: 'Error desconocido'}));
         // Solo lanzar el mensaje de error, sin el prefijo
         throw new Error(errorData.error || 'Error al realizar la apuesta');
       }
-      
+
       await refetchUserInfo();
     } catch (error) {
       // Re-lanzar el error para que el BetModal lo capture y muestre
@@ -84,7 +105,9 @@ export function App() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-700">
-        <p className="text-slate-200 text-lg font-semibold">Loading session...</p>
+        <p className="text-slate-200 text-lg font-semibold">
+          Loading session...
+        </p>
       </div>
     );
   }
@@ -136,7 +159,7 @@ export function App() {
       </div>
 
       {selectedMatch && (
-        <MatchDetailModal 
+        <MatchDetailModal
           match={selectedMatch}
           teams={teams}
           onClose={() => setSelectedMatch(null)}
@@ -195,7 +218,9 @@ function MatchesColumn({
   return (
     <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
       <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-        <span className={`w-3 h-3 ${colorClasses[statusColor]} rounded-full`}></span>
+        <span
+          className={`w-3 h-3 ${colorClasses[statusColor]} rounded-full`}
+        ></span>
         {title}
       </h2>
       <div className="space-y-3">
@@ -203,8 +228,8 @@ function MatchesColumn({
           <p className="text-slate-400 text-sm">{emptyMessage}</p>
         ) : (
           matches.map(match => (
-            <MatchCard 
-              key={match.id} 
+            <MatchCard
+              key={match.id}
               match={match}
               showBetting={showBetting}
               onMatchClick={onMatchClick}

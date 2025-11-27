@@ -14,7 +14,6 @@ type FormModalProps = {
   isLoading?: boolean;
   error?: string | null;
   submitText?: string;
-  cancelText?: string;
 };
 
 export function FormModal({
@@ -28,7 +27,6 @@ export function FormModal({
   isLoading = false,
   error,
   submitText = 'Guardar',
-  cancelText = 'Cancelar',
 }: FormModalProps) {
   return (
     <ModalOverlay isOpen={isOpen} isClosing={isClosing} onClose={onClose}>
@@ -40,10 +38,12 @@ export function FormModal({
       </div>
 
       <div className="mt-6 flex gap-3 justify-end">
-        <Button variant="ghost" onClick={onClose} disabled={isLoading}>
-          {cancelText}
-        </Button>
-        <Button variant="primary" onClick={onSubmit} isLoading={isLoading}>
+        <Button
+          variant="primary"
+          onClick={onSubmit}
+          isLoading={isLoading}
+          className="bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800"
+        >
           {submitText}
         </Button>
       </div>

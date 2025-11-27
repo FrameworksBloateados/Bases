@@ -94,7 +94,7 @@ export function ChangePasswordModal({
       />
 
       <PasswordField
-        label="Confirmá la nueva contraseña"
+        label="Confirmar nueva contraseña"
         password={confirmPassword}
         onChangeHandler={setConfirmPassword}
       />

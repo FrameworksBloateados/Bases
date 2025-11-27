@@ -698,7 +698,6 @@ type ActionButtonsProps = {
 function ActionButtons({
   isLoading,
   isSubmitDisabled,
-  onCancel,
   onSubmit,
 }: ActionButtonsProps) {
   return (

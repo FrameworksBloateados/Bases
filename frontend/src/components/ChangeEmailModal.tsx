@@ -61,8 +61,8 @@ export function ChangeEmailModal({
       title="Cambiar email"
       subtitle="Ingresa el nuevo email y tu contraseña actual"
       isLoading={isLoading}
-      error={displayError}
       submitText="Cambiar email"
+      error={displayError}
     >
       <EmailField
         label="Nuevo email"

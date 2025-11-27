@@ -57,6 +57,13 @@ export function MatchDetailModal({
 
         {match.result && <MatchScore match={match} />}
 
+        {isLive && match.streaming_platform && match.streaming_username && (
+          <StreamingSection
+            platform={match.streaming_platform}
+            username={match.streaming_username}
+          />
+        )}
+
         {isUpcoming && onBetClick && (
           <BettingSection match={match} onBetClick={onBetClick} />
         )}
@@ -305,6 +312,32 @@ function BettingSection({match, onBetClick}: BettingSectionProps) {
             {match.team_b?.name || 'Unknown'}
           </span>
         </button>
+      </div>
+    </div>
+  );
+}
+
+type StreamingSectionProps = {
+  platform: 'KICK';
+  username: string;
+};
+
+function StreamingSection({username}: StreamingSectionProps) {
+  return (
+    <div className="mb-6 p-6 bg-slate-900/50 rounded-xl border border-white/10">
+      <h3 className="text-lg font-semibold text-white mb-4 text-center">
+        🎥 Transmisión en vivo
+      </h3>
+      <div className="bg-black rounded-lg overflow-hidden aspect-video">
+        <iframe
+          src={`https://player.kick.com/${username}`}
+          width="100%"
+          height="100%"
+          frameBorder="0"
+          scrolling="no"
+          allowFullScreen={true}
+          className="w-full h-full"
+        />
       </div>
     </div>
   );

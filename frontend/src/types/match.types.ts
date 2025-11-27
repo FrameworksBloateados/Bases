@@ -25,6 +25,8 @@ export type Match = {
   team_a_id: number;
   team_b_id: number;
   match_date: string;
+  streaming_platform?: 'KICK';
+  streaming_username?: string;
 };
 
 export type MatchResult = {

@@ -574,7 +574,7 @@ export function Dashboard() {
                       }}
                       className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 focus:outline-none select-none border ${
                         activeSection === 'database'
-                          ? 'bg-purple-500/20 text-purple-300 border-purple-400/30'
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
                           : 'text-slate-300 hover:bg-white/5 active:bg-white/10 border-transparent'
                       }`}
                     >

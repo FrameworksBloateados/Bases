@@ -36,11 +36,11 @@ export function useMatchData() {
         setError(null);
         
         const [matchesRes, teamsRes, playersRes, resultsRes, statsRes] = await Promise.all([
-          authenticatedFetch('http://ffb.dev.internal/api/v1/matches/json', {method: 'GET'}),
-          authenticatedFetch('http://ffb.dev.internal/api/v1/teams/json', {method: 'GET'}),
-          authenticatedFetch('http://ffb.dev.internal/api/v1/players/json', {method: 'GET'}),
-          authenticatedFetch('http://ffb.dev.internal/api/v1/matches_results/json', {method: 'GET'}),
-          authenticatedFetch('http://ffb.dev.internal/api/v1/player_match_stats/json', {method: 'GET'}),
+          authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/matches/json', {method: 'GET'}),
+          authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/teams/json', {method: 'GET'}),
+          authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/players/json', {method: 'GET'}),
+          authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/matches_results/json', {method: 'GET'}),
+          authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/player_match_stats/json', {method: 'GET'}),
         ]);
 
         const matchesData: Match[] = await matchesRes.json();
@@ -76,7 +76,7 @@ export function useUserData() {
     try {
       setError(null);
       const userResponse = await authenticatedFetch(
-        'http://ffb.dev.internal/api/v1/user/whoami',
+        'http://127-0-0-1.sslip.io/api/v1/user/whoami',
         {method: 'GET'}
       );
       if (!userResponse.ok) throw new Error(`User fetch failed: ${userResponse.status}`);

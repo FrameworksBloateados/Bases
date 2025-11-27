@@ -42,8 +42,8 @@ services:
       - REFRESH_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
       - REFRESH_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
       - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
-      - FRONTEND_URL=${FRONTEND_URL:-http://ffb.dev.internal}
-      - BACKEND_URL=${BACKEND_URL:-http://ffb.dev.internal/api}
+      - FRONTEND_URL=${FRONTEND_URL:-http://127-0-0-1.sslip.io}
+      - BACKEND_URL=${BACKEND_URL:-http://127-0-0-1.sslip.io/api}
       - NODE_ENV=${NODE_ENV:-development}
     depends_on:
       - postgres
@@ -55,7 +55,7 @@ services:
       - 'traefik.docker.network=traefik-network'
 
       # API router: higher priority, PathPrefix /api/v1 -> backend :3000
-      - 'traefik.http.routers.api.rule=Host(`ffb.dev.internal`) && PathPrefix(`/api/v1`)'
+      - 'traefik.http.routers.api.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/api/v1`)'
       - 'traefik.http.routers.api.entrypoints=web'
       - 'traefik.http.routers.api.service=api'
       - 'traefik.http.services.api.loadbalancer.server.port=3000'
@@ -64,7 +64,7 @@ services:
       - 'traefik.http.middlewares.api-stripprefix.stripprefix.prefixes=/api/v1'
 
       # Frontend router: lower priority so /api/v1 is handled by the API router
-      - 'traefik.http.routers.frontend.rule=Host(`ffb.dev.internal`) && PathPrefix(`/`)'
+      - 'traefik.http.routers.frontend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/`)'
       - 'traefik.http.routers.frontend.entrypoints=web'
       - 'traefik.http.routers.frontend.service=frontend'
       - 'traefik.http.services.frontend.loadbalancer.server.port=80'

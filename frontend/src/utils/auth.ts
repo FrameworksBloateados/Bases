@@ -7,7 +7,7 @@ export const login = async ({
   username: string;
   password: string;
 }) => {
-  const response = await fetch('http://ffb.dev.internal/api/v1/auth/login', {
+  const response = await fetch('http://127-0-0-1.sslip.io/api/v1/auth/login', {
     method: 'POST',
     body: JSON.stringify({username, password}),
     headers: {
@@ -34,7 +34,7 @@ export const register = async ({
   password: string;
   email: string;
 }) => {
-  const response = await fetch('http://ffb.dev.internal/api/v1/auth/register', {
+  const response = await fetch('http://127-0-0-1.sslip.io/api/v1/auth/register', {
     method: 'POST',
     body: JSON.stringify({username, email, password}),
     headers: {
@@ -53,7 +53,7 @@ export const register = async ({
 };
 
 export const logout = async () => {
-  const response = await fetch(`http://ffb.dev.internal/api/v1/auth/logout`, {
+  const response = await fetch(`http://127-0-0-1.sslip.io/api/v1/auth/logout`, {
     method: 'POST',
     credentials: 'include',
   });
@@ -66,7 +66,7 @@ export const logout = async () => {
 
 export const refreshToken = async () => {
   const response = await fetch(
-    `http://ffb.dev.internal/api/v1/auth/refresh`,
+    `http://127-0-0-1.sslip.io/api/v1/auth/refresh`,
     {
       method: 'POST',
       credentials: 'include',

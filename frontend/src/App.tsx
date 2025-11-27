@@ -43,7 +43,7 @@ export function App() {
 
   const handleBet = async (matchId: number, teamId: number, amount: number) => {
     try {
-      const response = await authenticatedFetch('http://ffb.dev.internal/api/v1/bet', {
+      const response = await authenticatedFetch('http://127-0-0-1.sslip.io/api/v1/bet', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({

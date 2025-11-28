@@ -1,4 +1,20 @@
 services:
+  traefik:
+    image: traefik:latest
+    container_name: ffb_traefik
+    command:
+      - '--api.insecure=true'
+      - '--providers.docker=true'
+      - '--providers.docker.exposedbydefault=false'
+      - '--entrypoints.web.address=:80'
+    ports:
+      - '80:80'
+      - '8080:8080'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik-network
+
   postgres:
     image: postgres:latest
     container_name: ffb_postgres
@@ -12,6 +28,8 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_DB=${POSTGRES_DB:-postgres}
     shm_size: 128mb
+    networks:
+      - traefik-network
   
   backend:
     image: oven/bun:latest
@@ -31,11 +49,13 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://127-0-0-1.sslip.io}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ffb-backend.rule=Host(`ffb.valn.dev`) && PathPrefix(`/api/v1`)'
+      - "traefik.http.routers.ffb-backend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/api/v1`)'
       - "traefik.http.routers.ffb-backend.tls=true"
       - "traefik.http.routers.ffb-backend.entrypoints=websecure"
       - "traefik.http.routers.ffb-backend.service=ffb-backend"
       - "traefik.http.services.ffb-backend.loadbalancer.server.port=3000"
+    networks:
+      - traefik-network
 
   frontend:
     image: oven/bun:latest
@@ -48,11 +68,17 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ffb-frontend.rule=Host(`ffb.valn.dev`)"
+      - "traefik.http.routers.ffb-frontend.rule=Host(`127-0-0-1.sslip.io`)"
       - "traefik.http.routers.ffb-frontend.tls=true"
       - "traefik.http.routers.ffb-frontend.entrypoints=websecure"
       - "traefik.http.routers.ffb-frontend.service=ffb-frontend"
       - "traefik.http.services.ffb-frontend.loadbalancer.server.port=80"
+    networks:
+      - traefik-network
+
+networks:
+  traefik-network:
+    driver: bridge
 
 volumes:
   postgres_data:

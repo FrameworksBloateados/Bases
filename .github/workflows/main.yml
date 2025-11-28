@@ -57,15 +57,3 @@ jobs:
             docker compose -f compose-prod.yml down
             docker compose -f compose-prod.yml up -d --build --force-recreate
             docker image prune -f
-            
-            echo "=== Docker containers status ==="
-            docker compose -f compose-prod.yml ps
-            
-            echo "=== Waiting 10 seconds for containers to start ==="
-            sleep 10
-            
-            echo "=== Docker logs ==="
-            docker compose -f compose-prod.yml logs --tail=50
-            
-            echo "=== Checking for unhealthy containers ==="
-            docker compose -f compose-prod.yml ps --filter "status=exited"

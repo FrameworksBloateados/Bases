@@ -124,8 +124,12 @@ const refreshAccessToken = async (c: Context) => {
 
 export const logoutHandler = async (c: Context) => {
   try {
-    deleteCookie(c, `${cookieNamePrefix}JWT`);
-    deleteCookie(c, `${cookieNamePrefix}Fgp`);
+    const cookieOptions = {
+      secure: process.env.NODE_ENV !== 'development',
+      sameSite: 'Strict' as const,
+    };
+    deleteCookie(c, `${cookieNamePrefix}JWT`, cookieOptions);
+    deleteCookie(c, `${cookieNamePrefix}Fgp`, cookieOptions);
     return c.json({message: 'Sesión cerrada exitosamente'});
   } catch (err: any) {
     console.error('Error occurred during logout:', err);

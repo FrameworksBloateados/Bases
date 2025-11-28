@@ -54,7 +54,6 @@ services:
       - 'traefik.enable=true'
       - 'traefik.docker.network=traefik-network'
 
-      # API router: higher priority, PathPrefix /api/v1 -> backend :3000
       - 'traefik.http.routers.backend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/api/v1`)'
       - 'traefik.http.routers.backend.entrypoints=web'
       - 'traefik.http.routers.backend.service=backend'
@@ -63,12 +62,10 @@ services:
       - 'traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/api/v1'
       - 'traefik.http.services.backend.loadbalancer.server.port=3000'
 
-      # Frontend router: lower priority so /api/v1 is handled by the API router
       - 'traefik.http.routers.frontend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/`)'
       - 'traefik.http.routers.frontend.entrypoints=web'
       - 'traefik.http.routers.frontend.service=frontend'
       - 'traefik.http.services.frontend.loadbalancer.server.port=80'
-      - 'traefik.http.routers.frontend.priority=1'
     networks:
       - traefik-network
 

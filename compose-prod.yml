@@ -34,7 +34,7 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://127-0-0-1.sslip.io}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=traefik-network"
+      - "traefik.docker.network=core"
 
       - "traefik.http.routers.ffb-backend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/api/v1`)"
       - "traefik.http.routers.ffb-backend.tls=true"

@@ -1,9 +1,12 @@
 import {useState} from 'react';
 import {ERROR_MESSAGES} from '../utils/constants';
 import {useModalState} from '../hooks/useModalState';
-import {ModalOverlay, ModalHeader} from './ModalOverlay';
+import {useFormError} from '../hooks/useFormError';
+import {ModalOverlay} from './ModalOverlay';
+import {CloseIcon} from './CloseIcon';
 import {Button} from './Button';
-import { ErrorDisplay } from './ErrorDisplay';
+import {ErrorMessage} from './ErrorMessage';
+import {ModalActionButtons} from './ModalActionButtons';
 
 type BetModalProps = {
   matchId: number;
@@ -25,7 +28,7 @@ export function BetModal({
   onSuccess,
 }: BetModalProps) {
   const [betAmount, setBetAmount] = useState<string>('');
-  const [betError, setBetError] = useState<string | null>(null);
+  const {displayError, setError, clearError} = useFormError();
   const {isClosing, close} = useModalState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -35,16 +38,16 @@ export function BetModal({
   };
 
   const handleConfirm = async () => {
-    setBetError(null);
+    clearError();
 
     if (!betAmount || parseFloat(betAmount) <= 0) {
-      setBetError('Por favor ingresa un monto válido mayor a $0');
+      setError('Por favor ingresa un monto válido mayor a $0');
       return;
     }
 
     const amount = parseFloat(betAmount);
     if (amount > userBalance) {
-      setBetError(`Saldo insuficiente. Tu saldo actual es $${userBalance}`);
+      setError(`Saldo insuficiente. Tu saldo actual es $${userBalance}`);
       return;
     }
 
@@ -56,7 +59,7 @@ export function BetModal({
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : ERROR_MESSAGES.UNKNOWN;
-      setBetError(errorMessage);
+      setError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -65,7 +68,7 @@ export function BetModal({
   const handleAmountChange = (value: string) => {
     if (value === '' || parseFloat(value) >= 0) {
       setBetAmount(value);
-      setBetError(null);
+      clearError();
     }
   };
 
@@ -86,11 +89,7 @@ export function BetModal({
         onKeyDown={handleKeyDown}
       />
 
-      {betError && (
-        <div className="mb-4">
-          <ErrorDisplay message={betError} />
-        </div>
-      )}
+      <ErrorMessage message={displayError} className="mb-4" />
 
       <ActionButtons
         onCancel={handleClose}
@@ -122,7 +121,7 @@ function BetModalHeader({teamName, onClose}: BetModalHeaderProps) {
         onClick={onClose}
         className="text-slate-400 hover:text-white text-2xl"
       >
-        ×
+        <CloseIcon />
       </button>
     </div>
   );
@@ -165,28 +164,20 @@ function BetAmountInput({
   );
 }
 
-
-
 type ActionButtonsProps = {
   onCancel: () => void;
   onConfirm: () => void;
   isProcessing: boolean;
 };
 
-function ActionButtons({
-  onConfirm,
-  isProcessing,
-}: ActionButtonsProps) {
+function ActionButtons({onConfirm, isProcessing}: ActionButtonsProps) {
   return (
-    <div className="flex gap-3">
-      <Button
-        variant="gradient"
-        onClick={onConfirm}
-        isLoading={isProcessing}
-        className="flex-1"
-      >
-        Confirmar apuesta
-      </Button>
-    </div>
+    <ModalActionButtons
+      onSubmit={onConfirm}
+      isLoading={isProcessing}
+      submitText="Confirmar apuesta"
+      showCancel={false}
+      submitClassName="flex-1"
+    />
   );
 }

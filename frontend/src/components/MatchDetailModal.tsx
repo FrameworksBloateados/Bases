@@ -7,6 +7,8 @@ import type {
 } from '../types/match.types';
 import {LiveMatchTimer} from './LiveMatchTimer';
 import {CountdownTimer} from './CountdownTimer';
+import {CloseIcon} from './CloseIcon';
+import {useModalAnimation} from '../hooks/useModalAnimation';
 
 type MatchDetailModalProps = {
   match: MatchWithDetails;
@@ -21,14 +23,9 @@ export function MatchDetailModal({
   onClose,
   onBetClick,
 }: MatchDetailModalProps) {
-  const [isClosing, setIsClosing] = useState(false);
+  const {isClosing, close} = useModalAnimation(onClose);
 
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
+  const handleClose = close;
 
   const winningTeamName =
     teams.find(t => t.id === match.result?.winning_team_id)?.name || 'Unknown';
@@ -118,7 +115,7 @@ function ModalHeader({
         onClick={onClose}
         className="text-slate-400 hover:text-white text-2xl"
       >
-        ×
+        <CloseIcon />
       </button>
     </div>
   );

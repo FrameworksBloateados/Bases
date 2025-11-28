@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {useDropdownAnimation} from '../hooks/useDropdownAnimation';
 import {ChevronDownIcon} from './Icons';
 

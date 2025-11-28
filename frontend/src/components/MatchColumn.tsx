@@ -15,9 +15,6 @@ export function MatchColumn({
   statusColor,
   matches,
   emptyMessage,
-  showBetting = false,
-  onMatchClick,
-  onBetClick,
 }: MatchColumnProps) {
   const colorClasses = {
     green: 'bg-green-500',

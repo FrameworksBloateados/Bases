@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import type {WhoAmIResponse} from '../types/match.types';
 import {useDropdownAnimation} from '../hooks/useDropdownAnimation';
 import {ChevronDownIcon} from './Icons';

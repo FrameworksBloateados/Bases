@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {ModalOverlay, ModalHeader} from './ModalOverlay';
 import {Button} from './Button';
-import {FormError} from './FormError';
+import {ErrorMessage} from './ErrorMessage';
 
 type FormModalProps = {
   isOpen: boolean;
@@ -34,7 +34,7 @@ export function FormModal({
 
       <div className="space-y-4">
         {children}
-        <FormError message={error || null} />
+        <ErrorMessage message={error || null} />
       </div>
 
       <div className="mt-6 flex gap-3 justify-end">

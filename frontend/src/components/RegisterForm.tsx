@@ -3,14 +3,11 @@ import {UsernameField} from './UsernameField';
 import {EmailField} from './EmailField';
 import {PasswordField} from './PasswordField';
 import {Link} from 'react-router-dom';
-import {
-  AuthPageLayout,
-  AuthFormContainer,
-  AuthFormHeader,
-} from './AuthLayout';
+import {AuthPageLayout, AuthFormContainer, AuthFormHeader} from './AuthLayout';
 import {Button} from './Button';
 import {validatePassword, validatePasswordMatch} from '../utils/validation';
-import {FormError} from './FormError';
+import {useFormError} from '../hooks/useFormError';
+import {ErrorMessage} from './ErrorMessage';
 
 interface RegisterFormProps {
   onSubmit: (credentials: {
@@ -26,12 +23,12 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeatedPassword, setRepeatedPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const {displayError, setError, clearError} = useFormError();
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
+    clearError();
 
     const passwordError = validatePassword(password);
     if (passwordError) {
@@ -104,7 +101,7 @@ export function RegisterForm({onSubmit, onSuccess}: RegisterFormProps) {
           onChangeHandler={setRepeatedPassword}
         />
 
-        <FormError message={error} className="mb-4 mt-2" />
+        <ErrorMessage message={displayError} className="mb-4 mt-2" />
 
         <Button
           type="submit"

@@ -63,13 +63,3 @@ export function AuthFormHeader({icon, title, subtitle}: AuthFormHeaderProps) {
     </div>
   );
 }
-
-type AuthFormErrorProps = {
-  error: string | null;
-};
-
-import { FormError } from './FormError';
-
-// ...existing code...
-
-// Reemplazar AuthFormError por FormError en los formularios

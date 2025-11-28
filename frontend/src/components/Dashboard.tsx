@@ -1,8 +1,8 @@
-import {useState, useEffect} from 'react';
-import {useNavigate} from 'react-router';
+import {useState, useEffect, useCallback} from 'react';
 import {useAuth} from '../context/AuthContext';
 import {useUserData, useMatchData} from '../hooks/useMatchData';
 import {useModalState} from '../hooks/useModalState';
+import {useAsyncHandler} from '../hooks/useAsyncHandler';
 import {
   getTableEndpoint,
   ERROR_MESSAGES,
@@ -21,6 +21,8 @@ import {RowDetailModal} from './RowDetailModal';
 import {AddRowsModal} from './AddRowsModal';
 import {MatchCard} from './MatchCard';
 import UploadMatchResultsModal from './UploadMatchResultsModal';
+import {SidebarNavButton} from './SidebarNavButton';
+import {UserProfileIcon, DatabaseIcon, PlusIcon} from './Icons';
 import {
   enrichMatches,
   filterFinishedMatchesWithoutResults,
@@ -40,8 +42,7 @@ type TableInfo = {
 type TableData = Record<string, any>[];
 
 export function Dashboard() {
-  const navigate = useNavigate();
-  const {authenticatedFetch, logout} = useAuth();
+  const {authenticatedFetch} = useAuth();
   const {userInfo, error: userError, refetchUserInfo} = useUserData();
 
   const [activeSection, setActiveSection] = useState<
@@ -64,11 +65,97 @@ export function Dashboard() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const addModal = useModalState();
-  const [isAdding, setIsAdding] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
+  const {
+    execute: executeSubmitWebRows,
+    isLoading: isAddingWeb,
+    error: webRowsError,
+  } = useAsyncHandler(
+    async (rows: Record<string, any>[]) => {
+      const response = await authenticatedFetch(
+        getTableEndpoint(selectedTable),
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(rows),
+        }
+      );
+
+      if (!response.ok) {
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al agregar las filas'
+        );
+        throw new Error(errorMessage);
+      }
+
+      await fetchTableData(selectedTable);
+    },
+    {modalToClose: addModal, clearErrorAfterMs: 300}
+  );
+
+  const {
+    execute: executeSubmitJsonRows,
+    isLoading: isAddingJson,
+    error: jsonRowsError,
+  } = useAsyncHandler(
+    async (jsonData: any[]) => {
+      const response = await authenticatedFetch(
+        getTableEndpoint(selectedTable),
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(jsonData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al procesar el JSON'
+        );
+        throw new Error(errorMessage);
+      }
+
+      await fetchTableData(selectedTable);
+    },
+    {modalToClose: addModal, clearErrorAfterMs: 300}
+  );
+
+  const {
+    execute: executeSubmitCsvFile,
+    isLoading: isAddingCsv,
+    error: csvFileError,
+  } = useAsyncHandler(
+    async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await authenticatedFetch(
+        getTableEndpoint(selectedTable),
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al procesar el archivo CSV'
+        );
+        throw new Error(errorMessage);
+      }
+
+      await fetchTableData(selectedTable);
+    },
+    {modalToClose: addModal, clearErrorAfterMs: 300}
+  );
+
+  // Combine errors for AddRowsModal
+  const modalError = webRowsError || jsonRowsError || csvFileError;
+  const isAdding = isAddingWeb || isAddingJson || isAddingCsv;
   const [rowModalError, setRowModalError] = useState<string | null>(null);
 
-  // Match data for admin: finished matches without results
   const {
     matches,
     teams,
@@ -101,7 +188,10 @@ export function Dashboard() {
     uploadModal.open();
   };
 
-  const handleUploadMatchResults = async (resultsFile: File, statsFile: File) => {
+  const handleUploadMatchResults = async (
+    resultsFile: File,
+    statsFile: File
+  ) => {
     if (!selectedMatchToUpload) return;
     setIsUploading(true);
     setUploadError(null);
@@ -126,7 +216,6 @@ export function Dashboard() {
       }
       uploadModal.close();
       setSelectedMatchToUpload(null);
-      // show success and refresh match data without full reload
       setUploadSuccess('Cargado correctamente');
       if (refetchMatchData) {
         try {
@@ -143,15 +232,57 @@ export function Dashboard() {
     }
   };
 
-  // Password change states
+  // Password change with useAsyncHandler
   const passwordModal = useModalState();
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const {
+    execute: executeChangePassword,
+    isLoading: isChangingPassword,
+    error: passwordError,
+  } = useAsyncHandler(
+    async (actualPassword: string, newPassword: string) => {
+      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_PASSWORD, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({actualPassword, newPassword}),
+      });
 
-  // Email change states
+      if (!response.ok) {
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al cambiar la contraseña'
+        );
+        throw new Error(errorMessage);
+      }
+    },
+    {modalToClose: passwordModal, clearErrorAfterMs: 300}
+  );
+
+  // Email change with useAsyncHandler
   const emailModal = useModalState();
-  const [isChangingEmail, setIsChangingEmail] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const {
+    execute: executeChangeEmail,
+    isLoading: isChangingEmail,
+    error: emailError,
+  } = useAsyncHandler(
+    async (password: string, newEmail: string) => {
+      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_EMAIL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({password, newEmail}),
+      });
+
+      if (!response.ok) {
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al cambiar el email'
+        );
+        throw new Error(errorMessage);
+      }
+
+      await refetchUserInfo();
+    },
+    {modalToClose: emailModal, clearErrorAfterMs: 300}
+  );
 
   useEffect(() => {
     if (
@@ -221,6 +352,20 @@ export function Dashboard() {
       setIsTransitioning(false);
     }, 300);
   };
+
+  // Helper function for section navigation with transition
+  const handleSectionChange = useCallback(
+    (section: 'profile' | 'database' | 'uploadMatches') => {
+      if (activeSection !== section) {
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setActiveSection(section);
+          setIsTransitioning(false);
+        }, 300);
+      }
+    },
+    [activeSection]
+  );
 
   const handleRowClick = (row: Record<string, any>) => {
     setSelectedRow(row);
@@ -305,10 +450,9 @@ export function Dashboard() {
 
     try {
       const deletePromises = Array.from(selectedRows).map(id =>
-        authenticatedFetch(
-          `${getTableEndpoint(selectedTable)}/${id}`,
-          {method: 'DELETE'}
-        )
+        authenticatedFetch(`${getTableEndpoint(selectedTable)}/${id}`, {
+          method: 'DELETE',
+        })
       );
 
       const results = await Promise.all(deletePromises);
@@ -325,7 +469,6 @@ export function Dashboard() {
       await fetchTableData(selectedTable);
       setSelectedRows(new Set());
 
-      // Solo cerrar el modal si la eliminación fue exitosa
       deleteModal.close();
       setTimeout(() => {
         setDeleteError(null);
@@ -337,197 +480,6 @@ export function Dashboard() {
       logger.error('Error in handleDeleteSelected:', err);
     } finally {
       setIsDeleting(false);
-    }
-  };
-
-  const handleChangePassword = async (
-    actualPassword: string,
-    newPassword: string
-  ) => {
-    setIsChangingPassword(true);
-    setPasswordError(null);
-
-    try {
-      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_PASSWORD, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({actualPassword, newPassword}),
-      });
-
-      if (!response.ok) {
-        const errorMessage = await parseErrorMessage(
-          response,
-          'Error al cambiar la contraseña'
-        );
-        throw new Error(errorMessage);
-      }
-
-      passwordModal.close();
-      setTimeout(() => {
-        setPasswordError(null);
-      }, 300);
-    } catch (err) {
-      setPasswordError(
-        err instanceof Error ? err.message : ERROR_MESSAGES.CHANGE_PASSWORD
-      );
-      logger.error('Error in handleChangePassword:', err);
-    } finally {
-      setIsChangingPassword(false);
-    }
-  };
-
-  const handleChangeEmail = async (password: string, newEmail: string) => {
-    setIsChangingEmail(true);
-    setEmailError(null);
-
-    try {
-      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_EMAIL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({password, newEmail}),
-      });
-
-      if (!response.ok) {
-        const errorMessage = await parseErrorMessage(
-          response,
-          'Error al cambiar el email'
-        );
-        throw new Error(errorMessage);
-      }
-
-      await refetchUserInfo();
-      emailModal.close();
-      setTimeout(() => {
-        setEmailError(null);
-      }, 300);
-    } catch (err) {
-      setEmailError(
-        err instanceof Error ? err.message : ERROR_MESSAGES.CHANGE_EMAIL
-      );
-      logger.error('Error in handleChangeEmail:', err);
-    } finally {
-      setIsChangingEmail(false);
-    }
-  };
-
-  const handleSubmitWebRows = async (rows: Record<string, any>[]) => {
-    setIsAdding(true);
-    setModalError(null);
-
-    try {
-      const response = await authenticatedFetch(
-        getTableEndpoint(selectedTable),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(rows),
-        }
-      );
-
-      if (!response.ok) {
-        const errorMessage = await parseErrorMessage(
-          response,
-          'Error al agregar las filas'
-        );
-        throw new Error(errorMessage);
-      }
-
-      await fetchTableData(selectedTable);
-      addModal.close();
-      setTimeout(() => {
-        setModalError(null);
-      }, 300);
-    } catch (err) {
-      setModalError(
-        err instanceof Error ? err.message : ERROR_MESSAGES.ADD_ROWS
-      );
-      logger.error('Error in handleSubmitWebRows:', err);
-    } finally {
-      setIsAdding(false);
-    }
-  };
-
-  const handleSubmitJsonRows = async (jsonData: any[]) => {
-    setIsAdding(true);
-    setModalError(null);
-
-    try {
-      const response = await authenticatedFetch(
-        getTableEndpoint(selectedTable),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(jsonData),
-        }
-      );
-
-      if (!response.ok) {
-        const errorMessage = await parseErrorMessage(
-          response,
-          'Error al procesar el JSON'
-        );
-        throw new Error(errorMessage);
-      }
-
-      await fetchTableData(selectedTable);
-      addModal.close();
-      setTimeout(() => {
-        setModalError(null);
-      }, 300);
-    } catch (err) {
-      setModalError(
-        err instanceof Error ? err.message : ERROR_MESSAGES.PROCESS_JSON
-      );
-      logger.error('Error in handleSubmitJsonRows:', err);
-    } finally {
-      setIsAdding(false);
-    }
-  };
-
-  const handleSubmitCsvFile = async (file: File) => {
-    setIsAdding(true);
-    setModalError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await authenticatedFetch(
-        getTableEndpoint(selectedTable),
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        const errorMessage = await parseErrorMessage(
-          response,
-          'Error al procesar el archivo CSV'
-        );
-        throw new Error(errorMessage);
-      }
-
-      await fetchTableData(selectedTable);
-      addModal.close();
-      setTimeout(() => {
-        setModalError(null);
-      }, 300);
-    } catch (err) {
-      setModalError(
-        err instanceof Error ? err.message : ERROR_MESSAGES.PROCESS_CSV
-      );
-      logger.error('Error in handleSubmitCsvFile:', err);
-    } finally {
-      setIsAdding(false);
     }
   };
 
@@ -561,37 +513,12 @@ export function Dashboard() {
               <h2 className="text-xl font-bold text-white mb-6">Dashboard</h2>
 
               <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    if (activeSection !== 'profile') {
-                      setIsTransitioning(true);
-                      setTimeout(() => {
-                        setActiveSection('profile');
-                        setIsTransitioning(false);
-                      }, 300);
-                    }
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 focus:outline-none select-none border ${
-                    activeSection === 'profile'
-                      ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
-                      : 'text-slate-300 hover:bg-white/5 active:bg-white/10 border-transparent'
-                  }`}
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                  Mi información
-                </button>
+                <SidebarNavButton
+                  label="Mi información"
+                  icon={<UserProfileIcon />}
+                  isActive={activeSection === 'profile'}
+                  onClick={() => handleSectionChange('profile')}
+                />
               </div>
 
               {userInfo?.admin && (
@@ -601,68 +528,18 @@ export function Dashboard() {
                     Administrador
                   </div>
                   <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        if (activeSection !== 'uploadMatches') {
-                          setIsTransitioning(true);
-                          setTimeout(() => {
-                            setActiveSection('uploadMatches');
-                            setIsTransitioning(false);
-                          }, 300);
-                        }
-                      }}
-                      className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 focus:outline-none select-none border ${
-                        activeSection === 'uploadMatches'
-                          ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
-                          : 'text-slate-300 hover:bg-white/5 active:bg-white/10 border-transparent'
-                      }`}
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      Cargar resultados
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (activeSection !== 'database') {
-                          setIsTransitioning(true);
-                          setTimeout(() => {
-                            setActiveSection('database');
-                            setIsTransitioning(false);
-                          }, 300);
-                        }
-                      }}
-                      className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 focus:outline-none select-none border ${
-                        activeSection === 'database'
-                          ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
-                          : 'text-slate-300 hover:bg-white/5 active:bg-white/10 border-transparent'
-                      }`}
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
-                        />
-                      </svg>
-                      Base de datos
-                    </button>
+                    <SidebarNavButton
+                      label="Cargar resultados"
+                      icon={<PlusIcon />}
+                      isActive={activeSection === 'uploadMatches'}
+                      onClick={() => handleSectionChange('uploadMatches')}
+                    />
+                    <SidebarNavButton
+                      label="Base de datos"
+                      icon={<DatabaseIcon />}
+                      isActive={activeSection === 'database'}
+                      onClick={() => handleSectionChange('database')}
+                    />
                   </div>
                 </>
               )}
@@ -687,15 +564,21 @@ export function Dashboard() {
                 {activeSection === 'uploadMatches' && userInfo?.admin && (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-2xl font-bold text-white">Cargar resultados</h3>
-                      <div className="text-slate-400 text-sm">Subir resultados y estadísticas</div>
+                      <h3 className="text-2xl font-bold text-white">
+                        Cargar resultados
+                      </h3>
+                      <div className="text-slate-400 text-sm">
+                        Subir resultados y estadísticas
+                      </div>
                     </div>
 
                     {/* upload success is shown via Toast */}
 
                     <div>
                       {matchesToProcess.length === 0 ? (
-                        <div className="text-slate-400">No hay partidos pendientes para procesar.</div>
+                        <div className="text-slate-400">
+                          No hay partidos pendientes para procesar.
+                        </div>
                       ) : (
                         <div className="space-y-3">
                           {matchesToProcess.map(m => (
@@ -773,15 +656,10 @@ export function Dashboard() {
         isClosing={addModal.isClosing}
         selectedTable={selectedTable}
         selectedTableInfo={selectedTableInfo}
-        onClose={() => {
-          addModal.close();
-          setTimeout(() => {
-            setModalError(null);
-          }, 300);
-        }}
-        onSubmitWeb={handleSubmitWebRows}
-        onSubmitJson={handleSubmitJsonRows}
-        onSubmitCsv={handleSubmitCsvFile}
+        onClose={addModal.close}
+        onSubmitWeb={executeSubmitWebRows}
+        onSubmitJson={executeSubmitJsonRows}
+        onSubmitCsv={executeSubmitCsvFile}
         isLoading={isAdding}
         error={modalError}
       />
@@ -789,13 +667,8 @@ export function Dashboard() {
       <ChangePasswordModal
         isOpen={passwordModal.isOpen}
         isClosing={passwordModal.isClosing}
-        onClose={() => {
-          passwordModal.close();
-          setTimeout(() => {
-            setPasswordError(null);
-          }, 300);
-        }}
-        onSubmit={handleChangePassword}
+        onClose={passwordModal.close}
+        onSubmit={executeChangePassword}
         isLoading={isChangingPassword}
         error={passwordError}
       />
@@ -803,13 +676,8 @@ export function Dashboard() {
       <ChangeEmailModal
         isOpen={emailModal.isOpen}
         isClosing={emailModal.isClosing}
-        onClose={() => {
-          emailModal.close();
-          setTimeout(() => {
-            setEmailError(null);
-          }, 300);
-        }}
-        onSubmit={handleChangeEmail}
+        onClose={emailModal.close}
+        onSubmit={executeChangeEmail}
         isLoading={isChangingEmail}
         error={emailError}
       />
@@ -1131,8 +999,6 @@ function DatabaseSection({
   onShowAddModal,
   isDeleting,
   isTransitioning,
-  ongoingMatches = [],
-  onOpenUploadMatch,
 }: DatabaseSectionProps) {
   if (loadingTables) {
     return (

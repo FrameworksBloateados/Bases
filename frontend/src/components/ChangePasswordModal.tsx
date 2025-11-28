@@ -6,6 +6,7 @@ import {
   validatePasswordMatch,
   validateRequired,
 } from '../utils/validation';
+import {useFormError} from '../hooks/useFormError';
 
 type ChangePasswordModalProps = {
   isOpen: boolean;
@@ -27,10 +28,14 @@ export function ChangePasswordModal({
   const [actualPassword, setActualPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [localError, setLocalError] = useState<string | null>(null);
+  const {
+    displayError,
+    setError: setLocalError,
+    clearError,
+  } = useFormError(error);
 
   const handleSubmit = async () => {
-    setLocalError(null);
+    clearError();
 
     const actualPasswordError = validateRequired(actualPassword);
     if (actualPasswordError) {
@@ -63,11 +68,9 @@ export function ChangePasswordModal({
     setActualPassword('');
     setNewPassword('');
     setConfirmPassword('');
-    setLocalError(null);
+    clearError();
     onClose();
   };
-
-  const displayError = localError || error;
 
   return (
     <FormModal

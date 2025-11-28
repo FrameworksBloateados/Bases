@@ -1,7 +1,11 @@
-export function CloseIcon() {
+type CloseIconProps = {
+  className?: string;
+};
+
+export function CloseIcon({className = 'w-6 h-6'}: CloseIconProps) {
   return (
     <svg
-      className="w-6 h-6"
+      className={className}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"

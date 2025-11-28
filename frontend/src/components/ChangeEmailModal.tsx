@@ -3,6 +3,7 @@ import {FormModal} from './FormModal';
 import {EmailField} from './EmailField';
 import {PasswordField} from './PasswordField';
 import {validateEmail, validateRequired} from '../utils/validation';
+import {useFormError} from '../hooks/useFormError';
 
 type ChangeEmailModalProps = {
   isOpen: boolean;
@@ -23,10 +24,14 @@ export function ChangeEmailModal({
 }: ChangeEmailModalProps) {
   const [password, setPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [localError, setLocalError] = useState<string | null>(null);
+  const {
+    displayError,
+    setError: setLocalError,
+    clearError,
+  } = useFormError(error);
 
   const handleSubmit = async () => {
-    setLocalError(null);
+    clearError();
 
     const passwordError = validateRequired(password);
     if (passwordError) {
@@ -46,11 +51,9 @@ export function ChangeEmailModal({
   const handleClose = () => {
     setPassword('');
     setNewEmail('');
-    setLocalError(null);
+    clearError();
     onClose();
   };
-
-  const displayError = localError || error;
 
   return (
     <FormModal

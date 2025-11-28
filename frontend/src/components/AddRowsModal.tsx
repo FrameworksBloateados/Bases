@@ -1,7 +1,10 @@
 import {useState, type ReactElement} from 'react';
-import {ModalOverlay} from './ModalOverlay';
+import {ModalOverlay, ModalHeader} from './ModalOverlay';
 import {Button} from './Button';
-import { ErrorDisplay } from './ErrorDisplay';
+import {ErrorMessage} from './ErrorMessage';
+import {InfoBox} from './InfoBox';
+import {FieldInput} from './FieldInput';
+import {DocumentIcon, CodeIcon, CsvFileIcon, UploadIcon} from './Icons';
 
 type TableColumn = {
   name: string;
@@ -166,7 +169,11 @@ export function AddRowsModal({
       maxWidth="2xl"
     >
       <div className="max-h-[80vh] flex flex-col min-h-0 overflow-hidden">
-        <ModalHeader selectedTable={selectedTable} onClose={handleClose} />
+        <ModalHeader
+          title="Insertar"
+          subtitle={`Tabla: ${selectedTable}`}
+          onClose={handleClose}
+        />
         <ModeTabs addMode={addMode} onModeChange={handleModeChange} />
         <ModalContent
           addMode={addMode}
@@ -193,31 +200,6 @@ export function AddRowsModal({
   );
 }
 
-type ModalHeaderProps = {
-  selectedTable: string;
-  onClose: () => void;
-};
-
-function ModalHeader({selectedTable, onClose}: ModalHeaderProps) {
-  return (
-    <div className="flex justify-between items-start mb-6 shrink-0">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Insertar</h2>
-        <p className="text-slate-400 text-sm">
-          Tabla:{' '}
-          <span className="font-semibold text-blue-400">{selectedTable}</span>
-        </p>
-      </div>
-      <button
-        onClick={onClose}
-        className="text-slate-400 hover:text-white text-2xl transition-colors duration-200"
-      >
-        ×
-      </button>
-    </div>
-  );
-}
-
 type ModeTabsProps = {
   addMode: AddMode;
   onModeChange: (mode: AddMode) => void;
@@ -234,59 +216,17 @@ function ModeTabs({addMode, onModeChange}: ModeTabsProps) {
     {
       mode: 'web',
       label: 'Web',
-      icon: (
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-      ),
+      icon: <DocumentIcon />,
     },
     {
       mode: 'json',
       label: 'JSON',
-      icon: (
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-          />
-        </svg>
-      ),
+      icon: <CodeIcon />,
     },
     {
       mode: 'csv',
       label: 'CSV',
-      icon: (
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-          />
-        </svg>
-      ),
+      icon: <CsvFileIcon />,
     },
   ];
 
@@ -388,7 +328,7 @@ function ModalContent({
           <CsvModeContent csvFile={csvFile} onCsvFileChange={onCsvFileChange} />
         )}
       </div>
-      {error && <ErrorDisplay message={error} className="mt-4 mb-2" />}
+      <ErrorMessage message={error} variant="display" className="mt-4 mb-2" />
     </div>
   );
 }
@@ -477,81 +417,6 @@ function RowEditor({
   );
 }
 
-type FieldInputProps = {
-  column: TableColumn;
-  value: any;
-  onChange: (value: any) => void;
-};
-
-function FieldInput({column, value, onChange}: FieldInputProps) {
-  const isRequired =
-    !column.nullable && !column.default && column.name !== 'id';
-  const isTimestamp =
-    column.type.toLowerCase().includes('timestamp') ||
-    column.name.toLowerCase().includes('_at') ||
-    column.name.toLowerCase().includes('date');
-  const isNumber =
-    column.type.toLowerCase().includes('int') ||
-    column.type.toLowerCase().includes('float') ||
-    column.type.toLowerCase().includes('decimal') ||
-    column.type.toLowerCase().includes('numeric');
-  const isBoolean = column.type.toLowerCase().includes('bool');
-
-  const baseInputClasses =
-    'w-full px-3 py-2 bg-slate-800 text-white border border-slate-600/50 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all duration-200';
-
-  return (
-    <div>
-      <label className="block text-sm text-slate-300 font-semibold mb-1">
-        {column.name}
-        {isRequired && <span className="text-red-400 ml-1">*</span>}
-      </label>
-
-      {isBoolean ? (
-        <select
-          value={value !== undefined ? String(value) : ''}
-          onChange={e => onChange(e.target.value === 'true')}
-          className={baseInputClasses}
-        >
-          <option value="">Seleccionar...</option>
-          <option value="true">true</option>
-          <option value="false">false</option>
-        </select>
-      ) : isTimestamp ? (
-        <input
-          type="datetime-local"
-          value={value ? new Date(value).toISOString().slice(0, 16) : ''}
-          onChange={e =>
-            onChange(
-              e.target.value ? new Date(e.target.value).toISOString() : ''
-            )
-          }
-          className={baseInputClasses}
-        />
-      ) : isNumber ? (
-        <input
-          type="number"
-          step="any"
-          value={value !== undefined ? value : ''}
-          onChange={e =>
-            onChange(e.target.value ? parseFloat(e.target.value) : '')
-          }
-          placeholder={column.default ? `Default: ${column.default}` : ''}
-          className={baseInputClasses}
-        />
-      ) : (
-        <input
-          type="text"
-          value={value || ''}
-          onChange={e => onChange(e.target.value)}
-          placeholder={column.default ? `Default: ${column.default}` : ''}
-          className={baseInputClasses}
-        />
-      )}
-    </div>
-  );
-}
-
 type JsonModeContentProps = {
   jsonInput: string;
   selectedTableInfo: TableInfo | undefined;
@@ -623,19 +488,7 @@ function CsvModeContent({csvFile, onCsvFileChange}: CsvModeContentProps) {
           htmlFor="csv-upload"
           className="cursor-pointer inline-flex flex-col items-center"
         >
-          <svg
-            className="w-12 h-12 text-slate-400 mb-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-            />
-          </svg>
+          <UploadIcon className="w-12 h-12 text-slate-400 mb-3" />
           <span className="text-slate-300 font-semibold mb-1">
             {csvFile
               ? csvFile.name
@@ -650,19 +503,6 @@ function CsvModeContent({csvFile, onCsvFileChange}: CsvModeContentProps) {
     </div>
   );
 }
-
-function InfoBox({message}: {message: string}) {
-  return (
-    <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4">
-      <p
-        className="text-blue-300 text-sm"
-        dangerouslySetInnerHTML={{__html: message}}
-      />
-    </div>
-  );
-}
-
-
 
 type ActionButtonsProps = {
   isLoading: boolean;

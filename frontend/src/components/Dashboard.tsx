@@ -1,8 +1,8 @@
-import {useState, useEffect} from 'react';
-import {useNavigate} from 'react-router';
+import {useState, useEffect, useCallback} from 'react';
 import {useAuth} from '../context/AuthContext';
 import {useUserData, useMatchData} from '../hooks/useMatchData';
 import {useModalState} from '../hooks/useModalState';
+import {useAsyncHandler} from '../hooks/useAsyncHandler';
 import {
   getTableEndpoint,
   ERROR_MESSAGES,
@@ -21,6 +21,10 @@ import {RowDetailModal} from './RowDetailModal';
 import {AddRowsModal} from './AddRowsModal';
 import {MatchCard} from './MatchCard';
 import UploadMatchResultsModal from './UploadMatchResultsModal';
+import {SidebarNavButton} from './SidebarNavButton';
+import {UserProfileIcon, DatabaseIcon, PlusIcon} from './Icons';
+import {ProfileSection} from './ProfileSection';
+import {DatabaseSection} from './DatabaseSection';
 import {
   enrichMatches,
   filterFinishedMatchesWithoutResults,
@@ -40,8 +44,7 @@ type TableInfo = {
 type TableData = Record<string, any>[];
 
 export function Dashboard() {
-  const navigate = useNavigate();
-  const {authenticatedFetch, logout} = useAuth();
+  const {authenticatedFetch} = useAuth();
   const {userInfo, error: userError, refetchUserInfo} = useUserData();
 
   const [activeSection, setActiveSection] = useState<
@@ -64,11 +67,97 @@ export function Dashboard() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const addModal = useModalState();
-  const [isAdding, setIsAdding] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
+  const {
+    execute: executeSubmitWebRows,
+    isLoading: isAddingWeb,
+    error: webRowsError,
+  } = useAsyncHandler(
+    async (rows: Record<string, any>[]) => {
+      const response = await authenticatedFetch(
+        getTableEndpoint(selectedTable),
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(rows),
+        }
+      );
+
+      if (!response.ok) {
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al agregar las filas'
+        );
+        throw new Error(errorMessage);
+      }
+
+      await fetchTableData(selectedTable);
+    },
+    {modalToClose: addModal, clearErrorAfterMs: 300}
+  );
+
+  const {
+    execute: executeSubmitJsonRows,
+    isLoading: isAddingJson,
+    error: jsonRowsError,
+  } = useAsyncHandler(
+    async (jsonData: any[]) => {
+      const response = await authenticatedFetch(
+        getTableEndpoint(selectedTable),
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(jsonData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al procesar el JSON'
+        );
+        throw new Error(errorMessage);
+      }
+
+      await fetchTableData(selectedTable);
+    },
+    {modalToClose: addModal, clearErrorAfterMs: 300}
+  );
+
+  const {
+    execute: executeSubmitCsvFile,
+    isLoading: isAddingCsv,
+    error: csvFileError,
+  } = useAsyncHandler(
+    async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await authenticatedFetch(
+        getTableEndpoint(selectedTable),
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al procesar el archivo CSV'
+        );
+        throw new Error(errorMessage);
+      }
+
+      await fetchTableData(selectedTable);
+    },
+    {modalToClose: addModal, clearErrorAfterMs: 300}
+  );
+
+  // Combine errors for AddRowsModal
+  const modalError = webRowsError || jsonRowsError || csvFileError;
+  const isAdding = isAddingWeb || isAddingJson || isAddingCsv;
   const [rowModalError, setRowModalError] = useState<string | null>(null);
 
-  // Match data for admin: finished matches without results
   const {
     matches,
     teams,
@@ -101,7 +190,10 @@ export function Dashboard() {
     uploadModal.open();
   };
 
-  const handleUploadMatchResults = async (resultsFile: File, statsFile: File) => {
+  const handleUploadMatchResults = async (
+    resultsFile: File,
+    statsFile: File
+  ) => {
     if (!selectedMatchToUpload) return;
     setIsUploading(true);
     setUploadError(null);
@@ -126,7 +218,6 @@ export function Dashboard() {
       }
       uploadModal.close();
       setSelectedMatchToUpload(null);
-      // show success and refresh match data without full reload
       setUploadSuccess('Cargado correctamente');
       if (refetchMatchData) {
         try {
@@ -143,15 +234,57 @@ export function Dashboard() {
     }
   };
 
-  // Password change states
+  // Password change with useAsyncHandler
   const passwordModal = useModalState();
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const {
+    execute: executeChangePassword,
+    isLoading: isChangingPassword,
+    error: passwordError,
+  } = useAsyncHandler(
+    async (actualPassword: string, newPassword: string) => {
+      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_PASSWORD, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({actualPassword, newPassword}),
+      });
 
-  // Email change states
+      if (!response.ok) {
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al cambiar la contraseña'
+        );
+        throw new Error(errorMessage);
+      }
+    },
+    {modalToClose: passwordModal, clearErrorAfterMs: 300}
+  );
+
+  // Email change with useAsyncHandler
   const emailModal = useModalState();
-  const [isChangingEmail, setIsChangingEmail] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const {
+    execute: executeChangeEmail,
+    isLoading: isChangingEmail,
+    error: emailError,
+  } = useAsyncHandler(
+    async (password: string, newEmail: string) => {
+      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_EMAIL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({password, newEmail}),
+      });
+
+      if (!response.ok) {
+        const errorMessage = await parseErrorMessage(
+          response,
+          'Error al cambiar el email'
+        );
+        throw new Error(errorMessage);
+      }
+
+      await refetchUserInfo();
+    },
+    {modalToClose: emailModal, clearErrorAfterMs: 300}
+  );
 
   useEffect(() => {
     if (
@@ -221,6 +354,20 @@ export function Dashboard() {
       setIsTransitioning(false);
     }, 300);
   };
+
+  // Helper function for section navigation with transition
+  const handleSectionChange = useCallback(
+    (section: 'profile' | 'database' | 'uploadMatches') => {
+      if (activeSection !== section) {
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setActiveSection(section);
+          setIsTransitioning(false);
+        }, 300);
+      }
+    },
+    [activeSection]
+  );
 
   const handleRowClick = (row: Record<string, any>) => {
     setSelectedRow(row);
@@ -305,10 +452,9 @@ export function Dashboard() {
 
     try {
       const deletePromises = Array.from(selectedRows).map(id =>
-        authenticatedFetch(
-          `${getTableEndpoint(selectedTable)}/${id}`,
-          {method: 'DELETE'}
-        )
+        authenticatedFetch(`${getTableEndpoint(selectedTable)}/${id}`, {
+          method: 'DELETE',
+        })
       );
 
       const results = await Promise.all(deletePromises);
@@ -325,7 +471,6 @@ export function Dashboard() {
       await fetchTableData(selectedTable);
       setSelectedRows(new Set());
 
-      // Solo cerrar el modal si la eliminación fue exitosa
       deleteModal.close();
       setTimeout(() => {
         setDeleteError(null);
@@ -337,197 +482,6 @@ export function Dashboard() {
       logger.error('Error in handleDeleteSelected:', err);
     } finally {
       setIsDeleting(false);
-    }
-  };
-
-  const handleChangePassword = async (
-    actualPassword: string,
-    newPassword: string
-  ) => {
-    setIsChangingPassword(true);
-    setPasswordError(null);
-
-    try {
-      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_PASSWORD, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({actualPassword, newPassword}),
-      });
-
-      if (!response.ok) {
-        const errorMessage = await parseErrorMessage(
-          response,
-          'Error al cambiar la contraseña'
-        );
-        throw new Error(errorMessage);
-      }
-
-      passwordModal.close();
-      setTimeout(() => {
-        setPasswordError(null);
-      }, 300);
-    } catch (err) {
-      setPasswordError(
-        err instanceof Error ? err.message : ERROR_MESSAGES.CHANGE_PASSWORD
-      );
-      logger.error('Error in handleChangePassword:', err);
-    } finally {
-      setIsChangingPassword(false);
-    }
-  };
-
-  const handleChangeEmail = async (password: string, newEmail: string) => {
-    setIsChangingEmail(true);
-    setEmailError(null);
-
-    try {
-      const response = await authenticatedFetch(API_ENDPOINTS.CHANGE_EMAIL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({password, newEmail}),
-      });
-
-      if (!response.ok) {
-        const errorMessage = await parseErrorMessage(
-          response,
-          'Error al cambiar el email'
-        );
-        throw new Error(errorMessage);
-      }
-
-      await refetchUserInfo();
-      emailModal.close();
-      setTimeout(() => {
-        setEmailError(null);
-      }, 300);
-    } catch (err) {
-      setEmailError(
-        err instanceof Error ? err.message : ERROR_MESSAGES.CHANGE_EMAIL
-      );
-      logger.error('Error in handleChangeEmail:', err);
-    } finally {
-      setIsChangingEmail(false);
-    }
-  };
-
-  const handleSubmitWebRows = async (rows: Record<string, any>[]) => {
-    setIsAdding(true);
-    setModalError(null);
-
-    try {
-      const response = await authenticatedFetch(
-        getTableEndpoint(selectedTable),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(rows),
-        }
-      );
-
-      if (!response.ok) {
-        const errorMessage = await parseErrorMessage(
-          response,
-          'Error al agregar las filas'
-        );
-        throw new Error(errorMessage);
-      }
-
-      await fetchTableData(selectedTable);
-      addModal.close();
-      setTimeout(() => {
-        setModalError(null);
-      }, 300);
-    } catch (err) {
-      setModalError(
-        err instanceof Error ? err.message : ERROR_MESSAGES.ADD_ROWS
-      );
-      logger.error('Error in handleSubmitWebRows:', err);
-    } finally {
-      setIsAdding(false);
-    }
-  };
-
-  const handleSubmitJsonRows = async (jsonData: any[]) => {
-    setIsAdding(true);
-    setModalError(null);
-
-    try {
-      const response = await authenticatedFetch(
-        getTableEndpoint(selectedTable),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(jsonData),
-        }
-      );
-
-      if (!response.ok) {
-        const errorMessage = await parseErrorMessage(
-          response,
-          'Error al procesar el JSON'
-        );
-        throw new Error(errorMessage);
-      }
-
-      await fetchTableData(selectedTable);
-      addModal.close();
-      setTimeout(() => {
-        setModalError(null);
-      }, 300);
-    } catch (err) {
-      setModalError(
-        err instanceof Error ? err.message : ERROR_MESSAGES.PROCESS_JSON
-      );
-      logger.error('Error in handleSubmitJsonRows:', err);
-    } finally {
-      setIsAdding(false);
-    }
-  };
-
-  const handleSubmitCsvFile = async (file: File) => {
-    setIsAdding(true);
-    setModalError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await authenticatedFetch(
-        getTableEndpoint(selectedTable),
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        const errorMessage = await parseErrorMessage(
-          response,
-          'Error al procesar el archivo CSV'
-        );
-        throw new Error(errorMessage);
-      }
-
-      await fetchTableData(selectedTable);
-      addModal.close();
-      setTimeout(() => {
-        setModalError(null);
-      }, 300);
-    } catch (err) {
-      setModalError(
-        err instanceof Error ? err.message : ERROR_MESSAGES.PROCESS_CSV
-      );
-      logger.error('Error in handleSubmitCsvFile:', err);
-    } finally {
-      setIsAdding(false);
     }
   };
 
@@ -561,37 +515,12 @@ export function Dashboard() {
               <h2 className="text-xl font-bold text-white mb-6">Dashboard</h2>
 
               <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    if (activeSection !== 'profile') {
-                      setIsTransitioning(true);
-                      setTimeout(() => {
-                        setActiveSection('profile');
-                        setIsTransitioning(false);
-                      }, 300);
-                    }
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 focus:outline-none select-none border ${
-                    activeSection === 'profile'
-                      ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
-                      : 'text-slate-300 hover:bg-white/5 active:bg-white/10 border-transparent'
-                  }`}
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                  Mi información
-                </button>
+                <SidebarNavButton
+                  label="Mi información"
+                  icon={<UserProfileIcon />}
+                  isActive={activeSection === 'profile'}
+                  onClick={() => handleSectionChange('profile')}
+                />
               </div>
 
               {userInfo?.admin && (
@@ -601,68 +530,18 @@ export function Dashboard() {
                     Administrador
                   </div>
                   <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        if (activeSection !== 'uploadMatches') {
-                          setIsTransitioning(true);
-                          setTimeout(() => {
-                            setActiveSection('uploadMatches');
-                            setIsTransitioning(false);
-                          }, 300);
-                        }
-                      }}
-                      className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 focus:outline-none select-none border ${
-                        activeSection === 'uploadMatches'
-                          ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
-                          : 'text-slate-300 hover:bg-white/5 active:bg-white/10 border-transparent'
-                      }`}
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      Cargar resultados
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (activeSection !== 'database') {
-                          setIsTransitioning(true);
-                          setTimeout(() => {
-                            setActiveSection('database');
-                            setIsTransitioning(false);
-                          }, 300);
-                        }
-                      }}
-                      className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 focus:outline-none select-none border ${
-                        activeSection === 'database'
-                          ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
-                          : 'text-slate-300 hover:bg-white/5 active:bg-white/10 border-transparent'
-                      }`}
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
-                        />
-                      </svg>
-                      Base de datos
-                    </button>
+                    <SidebarNavButton
+                      label="Cargar resultados"
+                      icon={<PlusIcon />}
+                      isActive={activeSection === 'uploadMatches'}
+                      onClick={() => handleSectionChange('uploadMatches')}
+                    />
+                    <SidebarNavButton
+                      label="Base de datos"
+                      icon={<DatabaseIcon />}
+                      isActive={activeSection === 'database'}
+                      onClick={() => handleSectionChange('database')}
+                    />
                   </div>
                 </>
               )}
@@ -687,15 +566,21 @@ export function Dashboard() {
                 {activeSection === 'uploadMatches' && userInfo?.admin && (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-2xl font-bold text-white">Cargar resultados</h3>
-                      <div className="text-slate-400 text-sm">Subir resultados y estadísticas</div>
+                      <h3 className="text-2xl font-bold text-white">
+                        Cargar resultados
+                      </h3>
+                      <div className="text-slate-400 text-sm">
+                        Subir resultados y estadísticas
+                      </div>
                     </div>
 
                     {/* upload success is shown via Toast */}
 
                     <div>
                       {matchesToProcess.length === 0 ? (
-                        <div className="text-slate-400">No hay partidos pendientes para procesar.</div>
+                        <div className="text-slate-400">
+                          No hay partidos pendientes para procesar.
+                        </div>
                       ) : (
                         <div className="space-y-3">
                           {matchesToProcess.map(m => (
@@ -773,15 +658,10 @@ export function Dashboard() {
         isClosing={addModal.isClosing}
         selectedTable={selectedTable}
         selectedTableInfo={selectedTableInfo}
-        onClose={() => {
-          addModal.close();
-          setTimeout(() => {
-            setModalError(null);
-          }, 300);
-        }}
-        onSubmitWeb={handleSubmitWebRows}
-        onSubmitJson={handleSubmitJsonRows}
-        onSubmitCsv={handleSubmitCsvFile}
+        onClose={addModal.close}
+        onSubmitWeb={executeSubmitWebRows}
+        onSubmitJson={executeSubmitJsonRows}
+        onSubmitCsv={executeSubmitCsvFile}
         isLoading={isAdding}
         error={modalError}
       />
@@ -789,13 +669,8 @@ export function Dashboard() {
       <ChangePasswordModal
         isOpen={passwordModal.isOpen}
         isClosing={passwordModal.isClosing}
-        onClose={() => {
-          passwordModal.close();
-          setTimeout(() => {
-            setPasswordError(null);
-          }, 300);
-        }}
-        onSubmit={handleChangePassword}
+        onClose={passwordModal.close}
+        onSubmit={executeChangePassword}
         isLoading={isChangingPassword}
         error={passwordError}
       />
@@ -803,13 +678,8 @@ export function Dashboard() {
       <ChangeEmailModal
         isOpen={emailModal.isOpen}
         isClosing={emailModal.isClosing}
-        onClose={() => {
-          emailModal.close();
-          setTimeout(() => {
-            setEmailError(null);
-          }, 300);
-        }}
-        onSubmit={handleChangeEmail}
+        onClose={emailModal.close}
+        onSubmit={executeChangeEmail}
         isLoading={isChangingEmail}
         error={emailError}
       />
@@ -856,523 +726,6 @@ export function Dashboard() {
           duration={2500}
         />
       )}
-    </div>
-  );
-}
-
-type ProfileSectionProps = {
-  userInfo: any;
-  userError: string | null;
-  onChangePassword: () => void;
-  onChangeEmail: () => void;
-};
-
-function ProfileSection({
-  userInfo,
-  userError,
-  onChangePassword,
-  onChangeEmail,
-}: ProfileSectionProps) {
-  if (userError) {
-    return (
-      <div className="text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-        Error: {userError}
-      </div>
-    );
-  }
-
-  if (!userInfo) {
-    return (
-      <div className="text-slate-400 animate-pulse">
-        Cargando información del usuario...
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <h3 className="text-2xl font-bold text-white mb-6">Mi Información</h3>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <InfoCard
-          icon={
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
-          }
-          label="Usuario"
-          value={userInfo.username}
-          color="blue"
-        />
-
-        <InfoCard
-          icon={
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
-          }
-          label="Email"
-          value={userInfo.email}
-          color="purple"
-        />
-
-        <InfoCard
-          icon={
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          }
-          label="Balance"
-          value={`$${userInfo.balance}`}
-          color="green"
-        />
-
-        <InfoCard
-          icon={
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-              />
-            </svg>
-          }
-          label="Rol"
-          value={userInfo.admin ? 'Administrador' : 'Usuario'}
-          color={userInfo.admin ? 'yellow' : 'slate'}
-        />
-      </div>
-
-      {/* Action Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        <button
-          onClick={onChangePassword}
-          className="flex items-center justify-center gap-3 text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-lg p-4 shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 group"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-            />
-          </svg>
-          <span className="font-semibold">Cambiar contraseña</span>
-        </button>
-
-        <button
-          onClick={onChangeEmail}
-          className="flex items-center justify-center gap-3 text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-lg p-4 shadow-lg hover:shadow-xl transition-colors duration-300 active:scale-99 group"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-            />
-          </svg>
-          <span className="font-semibold">Cambiar email</span>
-        </button>
-      </div>
-
-      <div className="bg-white/5 border border-white/10 rounded-lg p-4 mt-6">
-        <div className="flex items-start gap-3">
-          <svg
-            className="w-5 h-5 text-blue-400 mt-0.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <div className="flex-1 text-sm">
-            <p className="text-slate-300">
-              <span className="font-semibold">ID de cuenta:</span> {userInfo.id}
-            </p>
-            <p className="text-slate-400 mt-1">
-              <span className="font-semibold">Creada:</span>{' '}
-              {new Date(userInfo.created_at).toLocaleString('es-ES')}
-            </p>
-            <p className="text-slate-400">
-              <span className="font-semibold">Última actualización:</span>{' '}
-              {new Date(userInfo.updated_at).toLocaleString('es-ES')}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type InfoCardProps = {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  color: 'blue' | 'purple' | 'green' | 'yellow' | 'slate';
-};
-
-function InfoCard({icon, label, value, color}: InfoCardProps) {
-  const colorClasses = {
-    blue: 'from-blue-500/20 to-blue-600/20 border-blue-400/30 text-blue-300',
-    purple:
-      'from-purple-500/20 to-purple-600/20 border-purple-400/30 text-purple-300',
-    green:
-      'from-green-500/20 to-green-600/20 border-green-400/30 text-green-300',
-    yellow:
-      'from-yellow-500/20 to-yellow-600/20 border-yellow-400/30 text-yellow-300',
-    slate:
-      'from-slate-500/20 to-slate-600/20 border-slate-400/30 text-slate-300',
-  };
-
-  return (
-    <div
-      className={`bg-linear-to-br ${colorClasses[color]} border rounded-lg p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg`}
-    >
-      <div className="flex items-center gap-3">
-        <div className={`${colorClasses[color]}`}>{icon}</div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">
-            {label}
-          </p>
-          <p className="text-white font-semibold truncate">{value}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type DatabaseSectionProps = {
-  tables: TableInfo[];
-  selectedTable: string;
-  selectedTableInfo: TableInfo | undefined;
-  tableData: TableData;
-  loadingTables: boolean;
-  loadingData: boolean;
-  error: string | null;
-  onTableChange: (tableName: string) => void;
-  onRowClick: (row: Record<string, any>) => void;
-  selectedRows: Set<number>;
-  onToggleRowSelection: (id: number) => void;
-  onToggleSelectAll: () => void;
-  onDeleteSelected: () => void;
-  onShowAddModal: () => void;
-  isDeleting: boolean;
-  isTransitioning: boolean;
-  ongoingMatches?: any[];
-  onOpenUploadMatch?: (match: any) => void;
-};
-
-function DatabaseSection({
-  tables,
-  selectedTable,
-  selectedTableInfo,
-  tableData,
-  loadingTables,
-  loadingData,
-  error,
-  onTableChange,
-  onRowClick,
-  selectedRows,
-  onToggleRowSelection,
-  onToggleSelectAll,
-  onDeleteSelected,
-  onShowAddModal,
-  isDeleting,
-  isTransitioning,
-  ongoingMatches = [],
-  onOpenUploadMatch,
-}: DatabaseSectionProps) {
-  if (loadingTables) {
-    return (
-      <LoadingSpinner text="Cargando tablas..." className="animate-pulse" />
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-        Error: {error}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`space-y-6 transition-opacity duration-300 ${
-        isTransitioning ? 'opacity-0' : 'opacity-100'
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <h3 className="text-2xl font-bold text-white">Base de datos</h3>
-
-        <div className="flex items-center gap-3">
-          {/* Delete Button */}
-          <button
-            onClick={selectedRows.size > 0 ? onDeleteSelected : undefined}
-            disabled={isDeleting || selectedRows.size === 0}
-            className={`px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-colors duration-300 whitespace-nowrap ${
-              isDeleting
-                ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-50'
-                : selectedRows.size > 0
-                ? 'text-white bg-linear-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 hover:shadow-xl active:scale-99 opacity-100 scale-100'
-                : 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-40 scale-95'
-            }`}
-          >
-            {isDeleting ? (
-              <span className="flex items-center gap-2">
-                <svg
-                  className="animate-spin h-4 w-4 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Eliminando...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-                {selectedRows.size > 0
-                  ? `Eliminar (${selectedRows.size})`
-                  : 'Eliminar'}
-              </span>
-            )}
-          </button>
-
-          {/* Insert Button */}
-          <button
-            onClick={onShowAddModal}
-            className="px-4 py-2 text-sm font-bold rounded-lg shadow-lg transition-colors duration-300 whitespace-nowrap text-white bg-linear-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 hover:shadow-xl active:scale-99"
-          >
-            <span className="flex items-center gap-2">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Insertar
-            </span>
-          </button>
-
-          {/* Table Selector */}
-          <TableSelector
-            tables={tables}
-            selectedTable={selectedTable}
-            onTableChange={onTableChange}
-          />
-        </div>
-      </div>
-
-      {/* Table Schema */}
-      {selectedTableInfo && (
-        <div className="bg-white/5 border border-white/10 rounded-lg p-4 transition-all duration-300 hover:bg-white/[0.07]">
-          <h4 className="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wider">
-            Estructura de la tabla
-          </h4>
-          <div className="space-y-2">
-            {selectedTableInfo.columns.map(col => (
-              <div key={col.name} className="flex items-center gap-3 text-sm">
-                <span className="font-mono text-blue-300">{col.name}</span>
-                <span className="text-slate-500">:</span>
-                <span className="text-purple-300">{col.type}</span>
-                {!col.nullable && (
-                  <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded">
-                    NOT NULL
-                  </span>
-                )}
-                {col.default && (
-                  <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">
-                    DEFAULT
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Table Data */}
-      <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden transition-all duration-300 hover:bg-white/[0.07]">
-        <div className="p-4 border-b border-white/10">
-          <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
-            Datos ({tableData.length}{' '}
-            {tableData.length === 1 ? 'registro' : 'registros'})
-          </h4>
-        </div>
-
-        {loadingData ? (
-          <div className="p-8 text-center">
-            <LoadingSpinner
-              text="Cargando datos..."
-              className="animate-pulse justify-center"
-            />
-          </div>
-        ) : tableData.length === 0 ? (
-          <div className="p-8 text-center text-slate-400">
-            No hay datos en esta tabla
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5">
-                <tr>
-                  <th className="px-4 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      checked={
-                        selectedRows.size === tableData.length &&
-                        tableData.length > 0
-                      }
-                      onChange={onToggleSelectAll}
-                      className="rounded border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
-                    />
-                  </th>
-                  {selectedTableInfo?.columns.map(col => (
-                    <th
-                      key={col.name}
-                      className="px-4 py-3 text-left text-slate-300 font-semibold"
-                    >
-                      {col.name}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.map((row, index) => (
-                  <tr
-                    key={row.id || index}
-                    className="border-t border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
-                    onClick={e => {
-                      if ((e.target as HTMLElement).tagName !== 'INPUT') {
-                        onRowClick(row);
-                      }
-                    }}
-                  >
-                    <td
-                      className="px-4 py-3"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.has(row.id)}
-                        onChange={() => onToggleRowSelection(row.id)}
-                        className="rounded border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
-                      />
-                    </td>
-                    {selectedTableInfo?.columns.map(col => (
-                      <td key={col.name} className="px-4 py-3 text-slate-300">
-                        {row[col.name] === null ? (
-                          <span className="text-slate-500 italic">null</span>
-                        ) : typeof row[col.name] === 'boolean' ? (
-                          <span
-                            className={`font-semibold ${
-                              row[col.name] ? 'text-green-400' : 'text-red-400'
-                            }`}
-                          >
-                            {row[col.name].toString()}
-                          </span>
-                        ) : typeof row[col.name] === 'object' ? (
-                          <span className="text-purple-300 font-mono text-xs">
-                            {JSON.stringify(row[col.name])}
-                          </span>
-                        ) : (
-                          <span className="truncate max-w-xs block">
-                            {String(row[col.name])}
-                          </span>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

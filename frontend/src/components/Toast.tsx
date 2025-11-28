@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {CloseIcon} from './CloseIcon';
 
 type ToastProps = {
   message: string;
@@ -49,7 +50,7 @@ export function Toast({message, type, onClose, duration = 3000}: ToastProps) {
           }}
           className="text-white/80 hover:text-white text-xl font-bold"
         >
-          ×
+          <CloseIcon />
         </button>
       </div>
     </div>

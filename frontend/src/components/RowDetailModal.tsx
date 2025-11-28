@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import {ModalOverlay, ModalHeader} from './ModalOverlay';
 import {Button} from './Button';
+import {EditIcon, UndoIcon, ErrorCircleIcon} from './Icons';
+import {InlineErrorMessage} from './ErrorMessage';
 
 type RowDetailModalProps = {
   isOpen: boolean;
@@ -127,36 +129,12 @@ export function RowDetailModal({
                           >
                             {isEditable ? (
                               <span className="flex items-center gap-1">
-                                <svg
-                                  className="w-3 h-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                                  />
-                                </svg>
+                                <UndoIcon />
                                 Deshacer
                               </span>
                             ) : (
                               <span className="flex items-center gap-1">
-                                <svg
-                                  className="w-3 h-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                  />
-                                </svg>
+                                <EditIcon />
                                 Editar
                               </span>
                             )}
@@ -266,24 +244,7 @@ export function RowDetailModal({
 
         {/* Error Display */}
         {error && (
-          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg shrink-0">
-            <div className="flex items-start gap-2">
-              <svg
-                className="w-5 h-5 text-red-400 shrink-0 mt-0.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <p className="text-red-300 text-sm">{error}</p>
-            </div>
-          </div>
+          <InlineErrorMessage message={error} className="mt-4 shrink-0" />
         )}
 
         {/* Save Button */}

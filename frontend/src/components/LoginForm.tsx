@@ -2,14 +2,11 @@ import {useState, type FormEvent} from 'react';
 import {UsernameField} from './UsernameField';
 import {PasswordField} from './PasswordField';
 import {Link} from 'react-router-dom';
-import {
-  AuthPageLayout,
-  AuthFormContainer,
-  AuthFormHeader,
-} from './AuthLayout';
+import {AuthPageLayout, AuthFormContainer, AuthFormHeader} from './AuthLayout';
 import {Button} from './Button';
 import {validatePassword} from '../utils/validation';
-import {FormError} from './FormError';
+import {useFormError} from '../hooks/useFormError';
+import {ErrorMessage} from './ErrorMessage';
 
 interface LoginFormProps {
   onSubmit: (credentials: {
@@ -22,12 +19,12 @@ interface LoginFormProps {
 export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const {displayError, setError, clearError} = useFormError();
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
+    clearError();
 
     const passwordError = validatePassword(password);
     if (passwordError) {
@@ -85,7 +82,7 @@ export function LoginForm({onSubmit, onSuccess}: LoginFormProps) {
           onChangeHandler={setPassword}
         />
 
-        <FormError message={error} className="mb-4 mt-2" />
+        <ErrorMessage message={displayError} className="mb-4 mt-2" />
 
         <Button
           type="submit"

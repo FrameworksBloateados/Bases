@@ -30,12 +30,16 @@ services:
     shm_size: 128mb
     networks:
       - traefik-network
-
-  devenv:
-    build: .
-    container_name: ffb_devenv
+  
+  backend:
+    image: oven/bun:latest
+    container_name: ffb_backend
     volumes:
-      - .:/usr/src/app
+      - ./backend/:/usr/src/app
+    working_dir: /usr/src/app
+    command: bun dev
+    depends_on:
+      - postgres
     environment:
       - ACCESS_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
       - ACCESS_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
@@ -43,32 +47,38 @@ services:
       - REFRESH_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
       - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
       - FRONTEND_URL=${FRONTEND_URL:-http://127-0-0-1.sslip.io}
-      - BACKEND_URL=${BACKEND_URL:-http://127-0-0-1.sslip.io/api/v1}
-      - NODE_ENV=${NODE_ENV:-development}
-    depends_on:
-      - postgres
-      - traefik
-    stdin_open: true
-    tty: true
     labels:
-      - 'traefik.enable=true'
-      - 'traefik.docker.network=traefik-network'
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
 
-      # API router: higher priority, PathPrefix /api/v1 -> backend :3000
-      - 'traefik.http.routers.api.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/api/v1`)'
-      - 'traefik.http.routers.api.entrypoints=web'
-      - 'traefik.http.routers.api.service=api'
-      - 'traefik.http.services.api.loadbalancer.server.port=3000'
-      - 'traefik.http.routers.api.priority=100'
-      - 'traefik.http.routers.api.middlewares=api-stripprefix'
-      - 'traefik.http.middlewares.api-stripprefix.stripprefix.prefixes=/api/v1'
+      - "traefik.http.routers.ffb-backend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/api/v1`)"
+      - "traefik.http.routers.ffb-backend.entrypoints=web"
+      - "traefik.http.routers.ffb-backend.service=ffb-backend"
+      - "traefik.http.routers.ffb-backend.priority=100"
+      - "traefik.http.routers.ffb-backend.middlewares=ffb-backend-stripprefix"
+      - "traefik.http.middlewares.ffb-backend-stripprefix.stripprefix.prefixes=/api/v1"
+      - "traefik.http.services.ffb-backend.loadbalancer.server.port=3000"
 
-      # Frontend router: lower priority so /api/v1 is handled by the API router
-      - 'traefik.http.routers.frontend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/`)'
-      - 'traefik.http.routers.frontend.entrypoints=web'
-      - 'traefik.http.routers.frontend.service=frontend'
-      - 'traefik.http.services.frontend.loadbalancer.server.port=80'
-      - 'traefik.http.routers.frontend.priority=1'
+    networks:
+      - traefik-network
+
+  frontend:
+    image: oven/bun:latest
+    container_name: ffb_frontend
+    volumes:
+      - ./frontend/:/usr/src/app
+    working_dir: /usr/src/app
+    command: bun dev
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+
+      - "traefik.http.routers.frontend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/`)"
+      - "traefik.http.routers.ffb-frontend.entrypoints=web"
+      - "traefik.http.routers.ffb-frontend.service=ffb-frontend"
+      - "traefik.http.services.ffb-frontend.loadbalancer.server.port=80"
     networks:
       - traefik-network
 

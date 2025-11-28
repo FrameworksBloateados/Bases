@@ -3,8 +3,10 @@ import {createPortal} from 'react-dom';
 import {ModalOverlay, ModalHeader} from './ModalOverlay';
 import {CloseIcon} from './CloseIcon';
 import {Button} from './Button';
-import {ErrorDisplay} from './ErrorDisplay';
+import {ErrorMessage} from './ErrorMessage';
 import {LiveMatchTimer} from './LiveMatchTimer';
+import {UploadIcon} from './Icons';
+import {useFormError} from '../hooks/useFormError';
 
 type MatchSummary = {
   id: number;
@@ -36,11 +38,17 @@ export function UploadMatchResultsModal({
 }: Props) {
   const [resultsFile, setResultsFile] = useState<File | null>(null);
   const [statsFile, setStatsFile] = useState<File | null>(null);
-  const [localError, setLocalError] = useState<string | null>(null);
-  const [exampleKind, setExampleKind] = useState<'results' | 'stats' | null>(null);
+  const {
+    displayError,
+    setError: setLocalError,
+    clearError,
+  } = useFormError(error);
+  const [exampleKind, setExampleKind] = useState<'results' | 'stats' | null>(
+    null
+  );
 
   const handleSubmit = async () => {
-    setLocalError(null);
+    clearError();
     if (!match) return;
     if (!resultsFile || !statsFile) {
       setLocalError('Se requieren ambos archivos: resultados y estadísticas.');
@@ -54,7 +62,12 @@ export function UploadMatchResultsModal({
   };
 
   return (
-    <ModalOverlay isOpen={isOpen} isClosing={isClosing} onClose={onClose} maxWidth="2xl">
+    <ModalOverlay
+      isOpen={isOpen}
+      isClosing={isClosing}
+      onClose={onClose}
+      maxWidth="2xl"
+    >
       <div className="flex flex-col max-h-[80vh]">
         <ModalHeader title="Cargar resultados" onClose={onClose} />
 
@@ -68,9 +81,13 @@ export function UploadMatchResultsModal({
                   className="w-8 h-8 object-contain shrink-0"
                 />
               )}
-              <div className="text-white font-semibold text-sm">{match?.team_a_name || 'Equipo A'}</div>
+              <div className="text-white font-semibold text-sm">
+                {match?.team_a_name || 'Equipo A'}
+              </div>
               <div className="text-slate-400 text-sm">vs</div>
-              <div className="text-white font-semibold text-sm">{match?.team_b_name || 'Equipo B'}</div>
+              <div className="text-white font-semibold text-sm">
+                {match?.team_b_name || 'Equipo B'}
+              </div>
               {match?.team_b_image && (
                 <img
                   src={match.team_b_image}
@@ -80,7 +97,11 @@ export function UploadMatchResultsModal({
               )}
             </div>
             <div className="text-slate-400 text-sm text-right">
-              <div>{match?.match_date ? new Date(match.match_date).toLocaleString() : ''}</div>
+              <div>
+                {match?.match_date
+                  ? new Date(match.match_date).toLocaleString()
+                  : ''}
+              </div>
               {match?.match_date && new Date(match.match_date) <= new Date() ? (
                 <div className="mt-1">
                   <LiveMatchTimer startTime={match.match_date} />
@@ -102,23 +123,15 @@ export function UploadMatchResultsModal({
                 htmlFor="results-upload"
                 className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center cursor-pointer inline-flex flex-col items-center w-full"
               >
-                <svg
-                  className="w-12 h-12 text-slate-400 mb-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
+                <UploadIcon className="w-12 h-12 text-slate-400 mb-3" />
                 <span className="text-slate-300 font-semibold mb-1 text-lg">
-                  {resultsFile ? resultsFile.name : 'Hacé clic acá para seleccionar el archivo CSV "results.csv"'}
+                  {resultsFile
+                    ? resultsFile.name
+                    : 'Hacé clic acá para seleccionar el archivo CSV "results.csv"'}
                 </span>
-                <span className="text-slate-500 text-sm">o arrastra y soltá el archivo acá</span>
+                <span className="text-slate-500 text-sm">
+                  o arrastra y soltá el archivo acá
+                </span>
               </label>
 
               <div className="mt-2 text-left">
@@ -144,23 +157,15 @@ export function UploadMatchResultsModal({
                 htmlFor="stats-upload"
                 className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center cursor-pointer inline-flex flex-col items-center w-full"
               >
-                <svg
-                  className="w-12 h-12 text-slate-400 mb-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
+                <UploadIcon className="w-12 h-12 text-slate-400 mb-3" />
                 <span className="text-slate-300 font-semibold mb-1 text-lg">
-                  {statsFile ? statsFile.name : 'Hacé clic acá para seleccionar el archivo CSV "stats.csv"'}
+                  {statsFile
+                    ? statsFile.name
+                    : 'Hacé clic acá para seleccionar el archivo CSV "stats.csv"'}
                 </span>
-                <span className="text-slate-500 text-sm">o arrastra y soltá el archivo acá</span>
+                <span className="text-slate-500 text-sm">
+                  o arrastra y soltá el archivo acá
+                </span>
               </label>
 
               <div className="mt-2 text-left">
@@ -175,9 +180,11 @@ export function UploadMatchResultsModal({
             </div>
           </div>
 
-          {(localError || error) && (
-            <ErrorDisplay message={localError || error || 'Error desconocido'} className="mt-2" />
-          )}
+          <ErrorMessage
+            message={displayError}
+            variant="display"
+            className="mt-2"
+          />
           {exampleKind && (
             <ExamplesModal
               isOpen={true}
@@ -269,13 +276,20 @@ function ExamplesModal({
           <h4 className="text-lg font-semibold text-white">
             {kind === 'results' ? 'Ejemplo: results.csv' : 'Ejemplo: stats.csv'}
           </h4>
-          <button onClick={handleRequestClose} className="text-slate-400 hover:text-white">
+          <button
+            onClick={handleRequestClose}
+            className="text-slate-400 hover:text-white"
+          >
             <CloseIcon />
           </button>
         </div>
 
         {/* Parsed CSV preview as a table */}
-        <CsvPreview kind={kind} resultsExample={resultsExample} statsExample={statsExample} />
+        <CsvPreview
+          kind={kind}
+          resultsExample={resultsExample}
+          statsExample={statsExample}
+        />
       </div>
     </ModalOverlay>
   );
@@ -301,7 +315,11 @@ function CsvPreview({
   statsExample: string;
 }) {
   const csv = kind === 'results' ? resultsExample : statsExample;
-  const rows = csv.trim().split('\n').filter(Boolean).map(r => r.split(';'));
+  const rows = csv
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map(r => r.split(';'));
   const header: string[] = rows[0] ?? [];
   const body: string[][] = rows.length > 1 ? rows.slice(1) : [];
   const [copied, setCopied] = useState(false);
@@ -324,7 +342,10 @@ function CsvPreview({
       }
       setCopied(true);
       // shorter feedback duration
-      timeoutRef.current = window.setTimeout(() => setCopied(false), 800) as unknown as number;
+      timeoutRef.current = window.setTimeout(
+        () => setCopied(false),
+        800
+      ) as unknown as number;
     } catch (err) {
       // ignore copy errors
     }
@@ -332,7 +353,8 @@ function CsvPreview({
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current as unknown as number);
+      if (timeoutRef.current)
+        clearTimeout(timeoutRef.current as unknown as number);
     };
   }, []);
 
@@ -343,7 +365,10 @@ function CsvPreview({
           <thead>
             <tr>
               {header.map((h, i) => (
-                <th key={i} className="text-left text-slate-300 text-xs font-medium px-2 py-1">
+                <th
+                  key={i}
+                  className="text-left text-slate-300 text-xs font-medium px-2 py-1"
+                >
                   {h}
                 </th>
               ))}
@@ -368,7 +393,9 @@ function CsvPreview({
           onClick={handleCopy}
           variant="gradient"
           disabled={copied}
-          className={`px-3 py-1.5 text-sm font-semibold ${copied ? 'opacity-90' : ''}`}
+          className={`px-3 py-1.5 text-sm font-semibold ${
+            copied ? 'opacity-90' : ''
+          }`}
         >
           {copied ? '¡Copiado!' : 'Clic para copiar'}
         </Button>

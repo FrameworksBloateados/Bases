@@ -1,4 +1,3 @@
-import {logger} from './logger';
 import {API_ENDPOINTS} from './constants';
 import {HttpError, parseErrorFromText} from './errorHandling';
 

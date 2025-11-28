@@ -1,0 +1,76 @@
+services:
+  traefik:
+    image: traefik:latest
+    container_name: ffb_traefik
+    command:
+      - '--api.insecure=true'
+      - '--providers.docker=true'
+      - '--providers.docker.exposedbydefault=false'
+      - '--entrypoints.web.address=:80'
+    ports:
+      - '80:80'
+      - '8080:8080'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik-network
+
+  postgres:
+    image: postgres:latest
+    container_name: ffb_postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_config:/etc/postgresql/conf.d
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+    shm_size: 128mb
+    networks:
+      - traefik-network
+
+  devenv:
+    build: .
+    container_name: ffb_devenv
+    volumes:
+      - .:/usr/src/app
+    environment:
+      - ACCESS_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
+      - ACCESS_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
+      - REFRESH_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
+      - REFRESH_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-postgres}
+      - FRONTEND_URL=${FRONTEND_URL:-http://127-0-0-1.sslip.io}
+    depends_on:
+      - postgres
+      - traefik
+    stdin_open: true
+    tty: true
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik-network'
+
+      - 'traefik.http.routers.backend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/api/v1`)'
+      - 'traefik.http.routers.backend.entrypoints=web'
+      - 'traefik.http.routers.backend.service=backend'
+      - 'traefik.http.routers.backend.priority=100'
+      - 'traefik.http.routers.backend.middlewares=backend-stripprefix'
+      - 'traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/api/v1'
+      - 'traefik.http.services.backend.loadbalancer.server.port=3000'
+
+      - 'traefik.http.routers.frontend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/`)'
+      - 'traefik.http.routers.frontend.entrypoints=web'
+      - 'traefik.http.routers.frontend.service=frontend'
+      - 'traefik.http.services.frontend.loadbalancer.server.port=80'
+    networks:
+      - traefik-network
+
+networks:
+  traefik-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  postgres_config:

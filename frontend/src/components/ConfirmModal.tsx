@@ -1,7 +1,7 @@
 import {ModalOverlay, ModalHeader} from './ModalOverlay';
 import {Button} from './Button';
-import {WarningIcon, ErrorCircleIcon} from './Icons';
-import {FormError} from './FormError';
+import {WarningIcon} from './Icons';
+import {ErrorMessage} from './ErrorMessage';
 
 type ConfirmModalProps = {
   isOpen: boolean;
@@ -60,7 +60,7 @@ export function ConfirmModal({
         </div>
       </div>
       {/* Error Display */}
-        <FormError message={error || null} className="mb-6" />
+      <ErrorMessage message={error || null} className="mb-6" />
       <div className="flex justify-end">
         <Button
           variant="primary"

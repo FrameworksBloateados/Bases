@@ -13,7 +13,7 @@ import {Header} from './components/Header';
 import {MatchCard} from './components/MatchCard';
 import {MatchDetailModal} from './components/MatchDetailModal';
 import {BetModal} from './components/BetModal';
-import {ErrorDisplay} from './components/ErrorDisplay';
+import {ErrorMessage} from './components/ErrorMessage';
 import {Toast} from './components/Toast';
 import type {MatchWithDetails} from './types/match.types';
 
@@ -124,7 +124,7 @@ export function App() {
     <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 py-8 px-4">
       <Header userInfo={userInfo} onLogout={logout} />
 
-      {error && <ErrorDisplay message={error} />}
+      <ErrorMessage message={error} variant="display" />
 
       <div className="max-w-[1600px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 relative z-50">
         <MatchesColumn

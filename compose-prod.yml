@@ -1,4 +1,18 @@
 services:
+  traefik:
+    image: traefik:latest
+    container_name: ffb_traefik
+    command:
+      - '--providers.docker=true'
+      - '--providers.docker.exposedbydefault=false'
+      - '--entrypoints.web.address=:80'
+    ports:
+      - '80:80'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik-network
+
   postgres:
     image: postgres:latest
     container_name: ffb_postgres
@@ -11,7 +25,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-postgres}
     shm_size: 128mb
     networks:
-      - database
+      - traefik-network
   
   backend:
     image: oven/bun:latest
@@ -22,9 +36,6 @@ services:
     command: bun start
     depends_on:
       - postgres
-    networks:
-      - core
-      - database
     environment:
       - ACCESS_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
       - ACCESS_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
@@ -34,16 +45,18 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-http://127-0-0-1.sslip.io}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=core"
+      - "traefik.docker.network=traefik-network"
 
-      - "traefik.http.routers.ffb-backend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/api/v1`)"
-      - "traefik.http.routers.ffb-backend.tls=true"
-      - "traefik.http.routers.ffb-backend.entrypoints=websecure"
+      - "traefik.http.routers.ffb-backend.rule=Host(`ffb.hra.agency`) && PathPrefix(`/api/v1`)"
+      - "traefik.http.routers.ffb-backend.entrypoints=web"
       - "traefik.http.routers.ffb-backend.service=ffb-backend"
       - "traefik.http.routers.ffb-backend.priority=100"
       - "traefik.http.routers.ffb-backend.middlewares=ffb-backend-stripprefix"
       - "traefik.http.middlewares.ffb-backend-stripprefix.stripprefix.prefixes=/api/v1"
       - "traefik.http.services.ffb-backend.loadbalancer.server.port=3000"
+
+    networks:
+      - traefik-network
 
   frontend:
     image: oven/bun:latest
@@ -54,25 +67,20 @@ services:
     command: bun start
     depends_on:
       - backend
-    networks:
-      - core
-      - database
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=core"
+      - "traefik.docker.network=traefik-network"
 
-      - "traefik.http.routers.frontend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/`)"
-      - "traefik.http.routers.ffb-frontend.tls=true"
-      - "traefik.http.routers.ffb-frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.rule=Host(`ffb.hra.agency`) && PathPrefix(`/`)"
+      - "traefik.http.routers.ffb-frontend.entrypoints=web"
       - "traefik.http.routers.ffb-frontend.service=ffb-frontend"
       - "traefik.http.services.ffb-frontend.loadbalancer.server.port=80"
+    networks:
+      - traefik-network
 
 networks:
-  core:
-    external: true
-  database:
+  traefik-network:
     driver: bridge
-    internal: true
 
 volumes:
   postgres_data:

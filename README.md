@@ -44,7 +44,7 @@
 ## Características
 
 - Autenticación con JWT (access + refresh tokens) [jwt.io](https://www.jwt.io/)
-- Seguridad siguiendo recomendaciones de OWASP: [OWASP Cheat Sheet Series](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.md)
+- Seguridad siguiendo recomendaciones de la [OWASP](https://owasp.org/about/)
 - Interfaz con React y TailwindCSS
 - Runtime con Bun para performance
 - Todo containerizado con Docker
@@ -104,7 +104,7 @@ graph LR
 ### Autenticación
 - **JWT** con access y refresh tokens
 - **Ed25519** para firma de tokens (actualmente el algoritmo más seguro para este propósito)
-- Implementación siguiendo [OWASP recommendations](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html)
+- Implementación siguiendo las [recomendaciones de la OWASP](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html)
 
 ### Contraseñas
 - **Argon2** para hashing (ganador del Password Hashing Competition)

@@ -37,7 +37,7 @@ services:
     volumes:
       - ./backend/:/usr/src/app
     working_dir: /usr/src/app
-    command: bun start
+    command: bun dev
     depends_on:
       - postgres
     environment:
@@ -54,9 +54,9 @@ services:
       - "traefik.http.routers.ffb-backend.rule=Host(`127-0-0-1.sslip.io`) && PathPrefix(`/api/v1`)"
       - "traefik.http.routers.ffb-backend.entrypoints=web"
       - "traefik.http.routers.ffb-backend.service=ffb-backend"
-      - "traefik.http.routers.backend.priority=100"
-      - "traefik.http.routers.backend.middlewares=backend-stripprefix"
-      - "traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/api/v1"
+      - "traefik.http.routers.ffb-backend.priority=100"
+      - "traefik.http.routers.ffb-backend.middlewares=ffb-backend-stripprefix"
+      - "traefik.http.middlewares.ffb-backend-stripprefix.stripprefix.prefixes=/api/v1"
       - "traefik.http.services.ffb-backend.loadbalancer.server.port=3000"
 
     networks:
@@ -68,7 +68,7 @@ services:
     volumes:
       - ./frontend/:/usr/src/app
     working_dir: /usr/src/app
-    command: bun run dev.ts
+    command: bun dev
     depends_on:
       - backend
     labels:

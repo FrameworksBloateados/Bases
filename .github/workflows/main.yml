@@ -36,7 +36,7 @@ jobs:
 
       - name: Test backend (syntax check)
         run: |
-          cd backend bun run --dry-run ./src/server.ts
+          cd backend
           ACCESS_TOKEN_PRIVATE_KEY=dummy ACCESS_TOKEN_PUBLIC_KEY=dummy REFRESH_TOKEN_PRIVATE_KEY=dummy REFRESH_TOKEN_PUBLIC_KEY=dummy DATABASE_URL=dummy bun run --dry-run ./src/server.ts
 
   deploy:

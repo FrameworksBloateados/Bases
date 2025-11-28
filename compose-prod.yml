@@ -13,6 +13,26 @@ services:
     networks:
       - traefik-network
 
+  backend-install:
+    image: oven/bun:latest
+    container_name: ffb_backend_install
+    volumes:
+      - ./backend/:/usr/src/app
+    working_dir: /usr/src/app
+    command: bun install
+    networks:
+      - traefik-network
+
+  frontend-install:
+    image: oven/bun:latest
+    container_name: ffb_frontend_install
+    volumes:
+      - ./frontend/:/usr/src/app
+    working_dir: /usr/src/app
+    command: bun install
+    networks:
+      - traefik-network
+
   postgres:
     image: postgres:latest
     container_name: ffb_postgres
@@ -26,6 +46,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_DB=${POSTGRES_DB:-postgres}
     shm_size: 128mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - traefik-network
   
@@ -37,7 +62,10 @@ services:
     working_dir: /usr/src/app
     command: bun start
     depends_on:
-      - postgres
+      backend-install:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     environment:
       - ACCESS_TOKEN_PRIVATE_KEY=${ACCESS_TOKEN_PRIVATE_KEY}
       - ACCESS_TOKEN_PUBLIC_KEY=${ACCESS_TOKEN_PUBLIC_KEY}
@@ -68,7 +96,10 @@ services:
     working_dir: /usr/src/app
     command: bun start
     depends_on:
-      - backend
+      frontend-install:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"

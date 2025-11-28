@@ -262,7 +262,19 @@ make clean-all       # Limpiar todos
 
 ### No resuelve 127-0-0-1.sslip.io
 
-Verificá tu DNS (debería ser 1.1.1.1 o 8.8.8.8). Si no funciona, probá con `localhost` directamente.
+Probá el siguiente comando:
+
+```bash
+nslookup 127-0-0-1.sslip.io
+```
+
+Si no funciona, intentá forzar un servidor DNS específico:
+
+```bash
+nslookup 127-0-0-1.sslip.io 1.1.1.1
+```
+
+Si el segundo comando resuelve, el problema está en la configuración de tu DNS local.
 
 ---
 

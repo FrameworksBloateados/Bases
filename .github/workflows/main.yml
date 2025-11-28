@@ -24,6 +24,8 @@ jobs:
           script: |
             cd ${{ secrets.PROJECT_PATH }}
             git pull origin main
+            cd backend && bun install && cd ..
+            cd frontend && bun install && cd ..
             docker compose -f compose-prod.yml pull
             docker compose -f compose-prod.yml up -d --build
             docker image prune -f

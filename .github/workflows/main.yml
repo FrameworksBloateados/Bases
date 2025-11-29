@@ -52,6 +52,6 @@ jobs:
           script: |
             cd ${{ secrets.PROJECT_PATH }}
             git pull origin main
-            docker compose -f compose-prod.yml up down
+            docker compose -f compose-prod.yml down
             docker compose -f compose-prod.yml up -d --build --force-recreate
             docker image prune -f
